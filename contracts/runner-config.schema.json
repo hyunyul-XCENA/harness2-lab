@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:terminal-runner:config:v1",
+  "title": "Resolved terminal runner configuration draft",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "project", "runtime", "improvement"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path"],
+      "properties": { "path": { "type": "string", "minLength": 1 } }
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["engine", "harness", "permissionMode", "maxQueuedMessages", "startupTimeoutMs"],
+      "properties": {
+        "engine": { "enum": ["codex", "claude"] },
+        "model": { "type": ["string", "null"], "minLength": 1 },
+        "harness": { "$ref": "#/$defs/harnessRef" },
+        "permissionMode": { "const": "interactive" },
+        "claude": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["settingsSources"],
+          "properties": {
+            "settingsSources": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "enum": ["user", "project", "local"] }
+            }
+          }
+        },
+        "maxQueuedMessages": { "const": 1 },
+        "startupTimeoutMs": { "type": "integer", "minimum": 1000, "maximum": 120000 }
+      },
+      "allOf": [{
+        "if": { "properties": { "engine": { "const": "claude" } } },
+        "then": { "properties": { "claude": {} }, "required": ["claude"] },
+        "else": { "properties": { "claude": false } }
+      }]
+    },
+    "improvement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enabled", "trigger", "editable", "isolation", "maxCandidates", "repetitions", "maxWallTimeSeconds", "validationRecipes"],
+      "properties": {
+        "enabled": { "type": "boolean" },
+        "trigger": { "const": "manual" },
+        "editable": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["instructions", "skills", "scripts"] }
+        },
+        "isolation": { "const": "container" },
+        "maxCandidates": { "type": "integer", "minimum": 1, "maximum": 2 },
+        "repetitions": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "maxWallTimeSeconds": { "type": "integer", "minimum": 30, "maximum": 3600 },
+        "validationRecipes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "allOf": [{
+        "if": { "properties": { "enabled": { "const": true } } },
+        "then": { "properties": { "validationRecipes": { "type": "array", "minItems": 1 } } }
+      }]
+    }
+  },
+  "$defs": {
+    "harnessRef": { "type": "string", "pattern": "^(global|project):[a-z][a-z0-9-]{0,63}$" }
+  }
+}

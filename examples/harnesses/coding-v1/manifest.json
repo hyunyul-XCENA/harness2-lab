@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1,
+  "id": "coding-v1",
+  "parent": null,
+  "files": [{ "kind": "instructions", "path": "instructions.md" }]
+}

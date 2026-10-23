@@ -1,0 +1,126 @@
+import {EventEmitter} from 'node:events';
+import type {AgentAdapter, AgentEvent, InputMessage, LiveSession, PendingRequest, RequestAnswer, SessionSpec, SessionState, SubmissionReceipt} from '../contracts/agent.js';
+import {StateStore} from './storage.js';
+import {errorText, id} from './util.js';
+
+/** One live conversation and one queued input. Every outbound input is journaled first. */
+export class SessionManager extends EventEmitter {
+  state: SessionState = 'opening';
+  activeTurn?: string;
+  readonly pending = new Map<string, PendingRequest>();
+  private live?: LiveSession;
+  private queued?: InputMessage;
+  private delivering = false;
+  private delivery?: Promise<void>;
+  private pump?: Promise<void>;
+  private closing = false;
+  private uncertain = false;
+  private receipts = new Map<string, SubmissionReceipt>();
+  constructor(readonly adapter: AgentAdapter, readonly store: StateStore) {super();}
+  private transition(current: SessionState): void {
+    if (current === this.state) return;
+    const previous = this.state; this.state = current;
+    if (this.live) this.persist({eventId: id(), appSessionId: this.live.appSessionId, connectionEpoch: this.live.connectionEpoch, receivedAt: new Date().toISOString(), payload: {type: 'state.changed', previous, current}});
+  }
+  private persist(event: AgentEvent): void {this.store.append(event.appSessionId, 'event', event); this.emit('event', event);}
+  private saveReceipt(receipt: SubmissionReceipt): void {
+    const old = this.receipts.get(receipt.requestId);
+    if (old?.status === 'completed' || old?.status === 'rejected') return;
+    if (old?.status === receipt.status && old.nativeTurnId === receipt.nativeTurnId) return;
+    this.receipts.set(receipt.requestId, receipt); this.store.append(this.live!.appSessionId, 'receipt', receipt);
+    if (receipt.status === 'unknown') this.uncertain = true;
+  }
+  async start(spec: SessionSpec): Promise<void> {
+    this.live = await this.adapter.start(spec);
+    this.store.append(spec.appSessionId, 'checkpoint', await this.adapter.checkpoint(this.live));
+    this.transition('idle'); this.listen();
+  }
+  async resume(sessionId: string, expectedCwd: string): Promise<void> {
+    const checkpoint = this.store.checkpoint(sessionId);
+    if (checkpoint.spec.cwd !== expectedCwd) throw new Error('Checkpoint belongs to another project');
+    if (checkpoint.runtime.engine !== this.adapter.engine) throw new Error('Checkpoint engine does not match adapter');
+    const previous = this.store.inputs(sessionId);
+    const unknown = previous.filter(input => ['sent', 'accepted', 'unknown'].includes(input.status));
+    this.live = await this.adapter.resume(checkpoint);
+    for (const receipt of await this.adapter.reconcile(this.live, unknown.map(input => ({requestId: input.requestId, status: 'unknown', nativeTurnId: input.nativeTurnId})))) this.saveReceipt(receipt);
+    // Queued inputs were never sent; show them in history, do not run on resume.
+    for (const input of previous.filter(input => input.status === 'queued')) this.saveReceipt({requestId: input.requestId, status: 'rejected', evidence: 'Unsent input cancelled on resume'});
+    this.store.append(sessionId, 'checkpoint', await this.adapter.checkpoint(this.live));
+    this.transition('idle'); this.listen();
+  }
+  private listen(): void {
+    const live = this.live!;
+    this.pump = (async () => {
+      try {
+        for await (const event of this.adapter.events(live)) {
+          this.persist(event);
+          const payload = event.payload;
+          if (payload.type === 'submission.changed') this.saveReceipt(payload.receipt);
+          if (payload.type === 'turn.started') {this.activeTurn = payload.nativeTurnId; this.transition(this.pending.size ? 'waiting_request' : 'running');}
+          if (payload.type === 'request.pending') {this.pending.set(payload.request.requestId, payload.request); this.transition('waiting_request');}
+          if (payload.type === 'request.resolved') {this.pending.delete(payload.requestId); if (this.activeTurn && !this.pending.size) this.transition('running');}
+          if (payload.type === 'turn.completed') {
+            if (this.activeTurn === payload.nativeTurnId) this.activeTurn = undefined;
+            this.store.append(live.appSessionId, 'checkpoint', await this.adapter.checkpoint(live));
+            this.transition('idle'); void this.flush();
+          }
+          if (payload.type === 'transport.disconnected' || (payload.type === 'adapter.error' && !payload.recoverable)) {this.uncertain = true; this.transition('failed');}
+        }
+      } catch (error) {this.state = 'failed'; this.emit('failure', errorText(error)); void this.adapter.close(live);}
+    })();
+  }
+  async input(text: string, steer = false): Promise<string> {
+    if (!this.live || ['failed', 'closed', 'opening', 'recovering'].includes(this.state)) throw new Error('No ready session');
+    if (this.uncertain) throw new Error('An earlier delivery is unknown. Review history and use /ack-unknown before sending more input');
+    if (!text.trim()) throw new Error('Empty input');
+    if (this.pending.size) throw new Error('Answer the pending request first');
+    if (steer && (!this.activeTurn || this.delivering)) throw new Error('Steer requires an active turn with no submission in progress');
+    if (!steer && this.queued) throw new Error('The one-message queue is full');
+    const input: InputMessage = {requestId: id(), text, mode: steer ? 'steer-current-turn' : 'next-turn', ...(steer ? {expectedNativeTurnId: this.activeTurn} : {})};
+    this.store.append(this.live.appSessionId, 'input', input);
+    if (!steer && (this.activeTurn || this.delivering || this.state !== 'idle')) {this.queued = input; return input.requestId;}
+    await this.deliver(input); return input.requestId;
+  }
+  acknowledgeUnknown(): void {this.uncertain = false;}
+  private async deliver(input: InputMessage): Promise<void> {
+    const task = this.performDelivery(input); this.delivery = task;
+    try {await task;} finally {if (this.delivery === task) this.delivery = undefined;}
+  }
+  private async performDelivery(input: InputMessage): Promise<void> {
+    this.delivering = true;
+    if (input.mode === 'next-turn') this.transition('running');
+    try {
+      const receipt = await this.adapter.submit(this.live!, input); this.saveReceipt(receipt);
+      if (receipt.status === 'accepted' && receipt.nativeTurnId) {
+        this.activeTurn = receipt.nativeTurnId;
+        this.transition(this.pending.size ? 'waiting_request' : 'running');
+      }
+      if (receipt.status === 'unknown') this.transition('failed');
+      if (receipt.status === 'rejected' && !this.activeTurn) this.transition('idle');
+    } catch (error) {
+      this.saveReceipt({requestId: input.requestId, status: 'unknown', evidence: errorText(error)}); this.transition('failed'); throw error;
+    } finally {this.delivering = false; void this.flush();}
+  }
+  private async flush(): Promise<void> {
+    if (!this.queued || this.delivering || this.activeTurn || this.pending.size || this.uncertain || this.state !== 'idle' || this.closing) return;
+    const input = this.queued; this.queued = undefined;
+    try {await this.deliver(input);} catch (error) {this.emit('failure', errorText(error));}
+  }
+  async interrupt(): Promise<void> {
+    if (!this.live || !this.activeTurn) throw new Error('No active turn to interrupt');
+    const previous = this.state; this.transition('interrupting');
+    try {await this.adapter.interrupt(this.live, this.activeTurn);} catch (error) {if (this.activeTurn) this.transition(previous); throw error;}
+  }
+  async answer(requestId: string, answer: RequestAnswer): Promise<void> {
+    if (!this.live) throw new Error('No session');
+    this.store.append(this.live.appSessionId, 'answer', {requestId, answer, delivery: 'attempt'});
+    await this.adapter.answer(this.live, requestId, answer);
+    this.store.append(this.live.appSessionId, 'answer', {requestId, answer, delivery: 'sent'});
+  }
+  history() {return this.live ? this.store.inputs(this.live.appSessionId) : [];}
+  async close(): Promise<void> {
+    if (this.closing) return; this.closing = true;
+    if (this.queued) {this.saveReceipt({requestId: this.queued.requestId, status: 'rejected', evidence: 'Unsent queued input cancelled on close'}); this.queued = undefined;}
+    if (this.live) {await this.adapter.close(this.live); await this.delivery?.catch(() => {}); await this.pump; this.transition('closed');}
+  }
+}

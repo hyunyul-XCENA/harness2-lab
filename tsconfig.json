@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "target": "ES2022", "module": "NodeNext", "moduleResolution": "NodeNext",
+    "rootDir": ".", "outDir": "dist", "strict": true, "types": ["node"],
+    "noUncheckedIndexedAccess": true, "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true, "skipLibCheck": true,
+    "sourceMap": true, "declaration": true
+  },
+  "include": ["src/**/*.ts", "contracts/**/*.ts", "test/**/*.ts", "scripts/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

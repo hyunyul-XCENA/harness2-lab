@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "project": { "path": "." },
+  "runtime": {
+    "engine": "claude",
+    "harness": "project:coding-v1",
+    "permissionMode": "interactive",
+    "claude": { "settingsSources": ["user", "project", "local"] },
+    "maxQueuedMessages": 1,
+    "startupTimeoutMs": 30000
+  },
+  "improvement": {
+    "enabled": false,
+    "trigger": "manual",
+    "editable": ["instructions", "skills", "scripts"],
+    "isolation": "container",
+    "maxCandidates": 2,
+    "repetitions": 2,
+    "maxWallTimeSeconds": 600,
+    "validationRecipes": []
+  }
+}
