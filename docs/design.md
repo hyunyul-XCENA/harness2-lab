@@ -208,4 +208,4 @@ Harness²의 Propose–Probe–Compose와 근거 저장을 참고하되 우리 �
 - Windows container 또는 Linux container 안에서 두 실행기와 인증을 재현하는 경로. 확인 전에는 실험 기능을 비활성으로 둔다.
 - 중단·프로세스 죽음·승인 대기 중 재개가 각 runtime에서 남기는 이력. 불확실한 입력의 자동 재전송 금지를 수용 검사로 고정한다.
 
-2026-10-23 구현 상태: Codex CLI 0.163.0과 Node.js 24.3.0에서 A0/A1 코드와 readline 터미널 UI를 구현했다. 실제 모델 호출로 두 turn 문맥 유지와 프로세스 종료 후 같은 thread 재개를 확인했다. 질문·승인·추가 지시·장애·중단은 protocol fixture로도 검증한다. 전체 화면 TUI와 Claude·개선 실험은 다음 단계다. 실행 방법과 최신 검증 범위는 README를 따른다.
+2026-10-23 구현 상태: A0/A1 및 A2 Claude adapter와 readline 터미널 UI를 구현했다. 검증 조합은 Codex CLI 0.163.0, Claude Code 2.1.309 + Agent SDK 0.3.309, Node.js 24.3.0이다. 두 실행기에서 실제 두 turn 문맥 유지·프로세스 종료 후 같은 대화 재개·중단을 확인했다. Claude는 열린 async 입력 스트림을 하나의 query()에 연결한다. Claude의 midTurnInput은 queue이며 현재-turn steer는 거절한다. 전체 화면 TUI와 개선 실험은 다음 단계다. 실행 방법과 최신 검증 범위는 README를 따른다.

@@ -46,6 +46,8 @@ export function loadConfig(project: string, home = path.join(os.homedir(), '.ter
   const defaults = record(json(path.join(assets, 'examples/runner.config.json')));
   const runtime = record(defaults.runtime); runtime.harness = 'global:coding-v1';
   let resolved = mergeConfig(mergeConfig(mergeConfig(defaults, shared), local), overrides);
+  const selected = record(resolved.runtime);
+  if (selected.engine === 'claude' && !Object.hasOwn(selected, 'claude')) selected.claude = {settingsSources: ['user', 'project', 'local']};
   resolved = {...resolved, project: {path: cwd}};
   if (!validate(resolved)) throw new Error(`Invalid config: ${ajv.errorsText(validate.errors)}`);
   return {config: resolved as unknown as RunnerConfig, home: path.resolve(home), stateDirectory: path.join(cwd, '.terminal-runner')};
