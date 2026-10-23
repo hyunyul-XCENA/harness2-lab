@@ -5,7 +5,7 @@ import readline from 'node:readline';
 if (process.argv.includes('--version')) {console.log('codex-cli 0.163.0'); process.exit(0);}
 const saved = path.join(process.cwd(), 'fake-history.json');
 let thread = fs.existsSync(saved) ? JSON.parse(fs.readFileSync(saved, 'utf8')) : {id: 'native-thread', turns: [], memory: ''};
-let active, timer, pendingApproval, pendingQuestion;
+let active, timer, pendingApproval, pendingQuestion, pendingSecret;
 const save = () => fs.writeFileSync(saved, JSON.stringify(thread));
 const send = message => process.stdout.write(JSON.stringify(message) + '\n');
 const response = (id, result) => send({id, result});
@@ -22,6 +22,7 @@ readline.createInterface({input: process.stdin}).on('line', line => {
   if (!m.method) {
     if (pendingApproval && m.id === pendingApproval) {pendingApproval = undefined; finish(m.result?.decision === 'accept' ? 'approved' : 'denied');}
     if (pendingQuestion && m.id === pendingQuestion) {pendingQuestion = undefined; finish(m.result?.answers?.language?.answers?.[0] ?? 'question-error');}
+    if (pendingSecret && m.id === pendingSecret) {pendingSecret = undefined; finish(m.error ? 'secret-declined' : 'unexpected-answer');}
     return;
   }
   if (m.method === 'initialize') {response(m.id, {serverInfo: 'fixture'}); return;}
@@ -46,6 +47,12 @@ readline.createInterface({input: process.stdin}).on('line', line => {
   if (text !== 'late-response' && text !== 'response-first') response(m.id, {turn});
   if (text === 'approval') {pendingApproval = 'approval-1'; send({id: pendingApproval, method: 'item/commandExecution/requestApproval', params: {threadId: thread.id, turnId: turn.id, itemId: 'tool', command: 'echo fixture'}}); return;}
   if (text === 'question') {pendingQuestion = 'question-1'; send({id: pendingQuestion, method: 'item/tool/requestUserInput', params: {threadId: thread.id, turnId: turn.id, itemId: 'tool', questions: [{id: 'language', question: 'Which language?', isOther: false, options: [{label: 'Korean', description: '한국어'}, {label: 'English', description: 'English'}]}]}}); return;}
+  if (text === 'secret') {pendingSecret = 'secret-1'; send({id: pendingSecret, method: 'item/tool/requestUserInput', params: {threadId: thread.id, turnId: turn.id, itemId: 'tool', questions: [{id: 'token', question: 'Secret token?', isSecret: true}]}}); return;}
+  if (text === 'file-approval') {
+    event('item/started', {turnId: turn.id, item: {id: 'file-tool', type: 'fileChange', changes: [{path: 'example.txt', kind: {type: 'update'}, diff: '-old\n+new'}]}});
+    pendingApproval = 'file-approval-1'; send({id: pendingApproval, method: 'item/fileChange/requestApproval', params: {threadId: thread.id, turnId: turn.id, itemId: 'file-tool'}}); return;
+  }
+  if (text === 'failed-turn') {event('error', {turnId: turn.id, error: {message: 'Fixture turn failure'}, willRetry: false}); finish('', 'failed'); return;}
   if (text === 'long') {timer = setTimeout(() => finish('long done'), 2000); return;}
   if (text.startsWith('remember ')) thread.memory = text.slice(9);
   const output = text === 'recall' ? thread.memory : text === 'unicode' ? '한글🙂' : `reply:${text}`;

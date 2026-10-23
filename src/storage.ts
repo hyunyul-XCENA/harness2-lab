@@ -101,9 +101,12 @@ export class StateStore {
       const end = bytes.lastIndexOf(10) + 1;
       const lines = bytes.subarray(0, end).toString('utf8').split('\n').filter(Boolean);
       // Parse all complete records before changing either index or partial tail.
-      const entries = lines.map(line => JSON.parse(line) as Entry);
+      const entries = lines.map((line, index) => {
+        try {return JSON.parse(line) as Entry;}
+        catch {throw new Error(`Corrupt journal: ${journal}, line ${index + 1}. Preserve the state directory and restore the record from backup before retrying.`);}
+      });
       for (const [index, entry] of entries.entries()) {
-        if (entry.sessionId !== name || entry.sequence !== index + 1 || !['checkpoint', 'input', 'receipt', 'event', 'answer'].includes(entry.kind)) throw new Error('Invalid journal identity or sequence');
+        if (entry.sessionId !== name || entry.sequence !== index + 1 || !['checkpoint', 'input', 'receipt', 'event', 'answer'].includes(entry.kind)) throw new Error(`Invalid journal identity or sequence: ${journal}, line ${index + 1}. Preserve the state directory before repairing it.`);
       }
       for (const entry of entries) this.apply(entry);
       if (end < bytes.length) {

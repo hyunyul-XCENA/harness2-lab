@@ -26,9 +26,12 @@ export class SessionManager extends EventEmitter {
   private saveReceipt(receipt: SubmissionReceipt): void {
     const old = this.receipts.get(receipt.requestId);
     if (old?.status === 'completed' || old?.status === 'rejected') return;
+    if (old?.status === 'accepted' && ['queued', 'sent'].includes(receipt.status)) return;
+    if (old?.status === 'unknown' && ['queued', 'sent', 'accepted'].includes(receipt.status)) return;
     if (old?.status === receipt.status && old.nativeTurnId === receipt.nativeTurnId) return;
     this.receipts.set(receipt.requestId, receipt); this.store.append(this.live!.appSessionId, 'receipt', receipt);
     if (receipt.status === 'unknown') this.uncertain = true;
+    if (receipt.status === 'completed' && ![...this.receipts.values()].some(value => value.status === 'unknown')) this.uncertain = false;
   }
   async start(spec: SessionSpec): Promise<void> {
     this.live = await this.adapter.start(spec);
@@ -62,9 +65,10 @@ export class SessionManager extends EventEmitter {
           if (payload.type === 'turn.completed') {
             if (this.activeTurn === payload.nativeTurnId) this.activeTurn = undefined;
             this.store.append(live.appSessionId, 'checkpoint', await this.adapter.checkpoint(live));
-            this.transition('idle'); void this.flush();
+            if (this.state !== 'failed') {this.transition('idle'); void this.flush();}
           }
-          if (payload.type === 'transport.disconnected' || (payload.type === 'adapter.error' && !payload.recoverable)) {this.uncertain = true; this.transition('failed');}
+          if (payload.type === 'transport.disconnected') {this.uncertain ||= payload.uncertainRequestIds.length > 0; this.activeTurn = undefined; this.pending.clear(); this.transition('failed');}
+          if (payload.type === 'adapter.error' && !payload.recoverable) this.transition('failed');
         }
       } catch (error) {this.state = 'failed'; this.emit('failure', errorText(error)); void this.adapter.close(live);}
     })();
@@ -90,6 +94,9 @@ export class SessionManager extends EventEmitter {
     this.delivering = true;
     if (input.mode === 'next-turn') this.transition('running');
     try {
+      // Arm recovery durably before adapter.submit can write any native bytes.
+      // A crash after this fence is conservatively unknown, even if no bytes left.
+      this.saveReceipt({requestId: input.requestId, status: 'sent', evidence: 'Durable pre-send fence; native acceptance is not yet confirmed'});
       const receipt = await this.adapter.submit(this.live!, input); this.saveReceipt(receipt);
       if (receipt.status === 'accepted' && receipt.nativeTurnId) {
         this.activeTurn = receipt.nativeTurnId;

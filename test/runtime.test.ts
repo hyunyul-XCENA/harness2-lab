@@ -76,7 +76,7 @@ test('approval is explicit; stale answers fail; rejection does not close session
 
 test('disconnect after acceptance becomes unknown and is never silently resent', async () => {
   const s = setup(), manager = new SessionManager(s.adapter(), s.store);
-  try {await manager.start(s.spec); await manager.input('disconnect'); await until(() => manager.state === 'failed'); assert.equal(manager.history()[0]?.status, 'unknown'); await assert.rejects(manager.input('retry'), /ready session/); assert.equal(JSON.parse(fs.readFileSync(path.join(s.project, 'fake-history.json'), 'utf8')).turns.length, 1);}
+  try {await manager.start(s.spec); await manager.input('disconnect'); await until(() => manager.state === 'failed'); assert.equal(manager.activeTurn, undefined); assert.equal(manager.history()[0]?.status, 'unknown'); await assert.rejects(manager.input('retry'), /ready session/); assert.equal(JSON.parse(fs.readFileSync(path.join(s.project, 'fake-history.json'), 'utf8')).turns.length, 1);}
   finally {await manager.close(); s.store.close();}
 });
 
@@ -105,6 +105,39 @@ test('approval timeout declines once and keeps later turns usable', async () => 
   finally {await manager.close(); s.store.close();}
 });
 
+test('sent fence is durable before the adapter can write native bytes', async () => {
+  const s = setup(), adapter = s.adapter(), manager = new SessionManager(adapter, s.store);
+  const nativeSubmit = adapter.submit.bind(adapter); let observed = '';
+  adapter.submit = async (session, input) => {observed = s.store.inputs(session.appSessionId).find(i => i.requestId === input.requestId)!.status; return nativeSubmit(session, input);};
+  try {await manager.start(s.spec); await manager.input('fence'); await until(() => manager.state === 'idle'); assert.equal(observed, 'sent');}
+  finally {await manager.close(); s.store.close();}
+});
+
+test('known failed turn keeps transport usable without acknowledging unknown delivery', async () => {
+  const s = setup(), manager = new SessionManager(s.adapter(), s.store); let outcome = '';
+  manager.on('event', event => {if (event.payload.type === 'turn.completed') outcome = event.payload.outcome;});
+  try {await manager.start(s.spec); await manager.input('failed-turn'); await until(() => manager.state === 'idle'); assert.equal(outcome, 'failed'); assert.equal(manager.history()[0]?.status, 'completed'); await manager.input('after-failure'); await until(() => manager.state === 'idle'); assert.equal(manager.history()[1]?.status, 'completed');}
+  finally {await manager.close(); s.store.close();}
+});
+
+test('secret question receives an error response while the session stays usable', async () => {
+  const s = setup(), manager = new SessionManager(s.adapter(), s.store); let text = '';
+  manager.on('event', event => {if (event.payload.type === 'message.delta') text += event.payload.text;});
+  try {await manager.start(s.spec); await manager.input('secret'); await until(() => manager.state === 'idle'); assert.equal(text, 'secret-declined'); assert.equal(manager.pending.size, 0); await manager.input('after-secret'); await until(() => manager.state === 'idle'); assert.ok(manager.history().every(i => i.status === 'completed'));}
+  finally {await manager.close(); s.store.close();}
+});
+
+test('file-change approval includes file paths and diff from the native tool item', async () => {
+  const s = setup(), manager = new SessionManager(s.adapter(), s.store);
+  try {
+    await manager.start(s.spec); await manager.input('file-approval'); await until(() => manager.pending.size === 1);
+    const request = [...manager.pending.values()][0]!; assert.equal(request.kind, 'approval');
+    if (request.kind !== 'approval') throw new Error('Expected approval');
+    assert.match(JSON.stringify(request.input), /example\.txt/); assert.match(JSON.stringify(request.input), /-old/);
+    await manager.answer(request.requestId, {kind: 'approval', decision: 'deny'}); await until(() => manager.state === 'idle');
+  } finally {await manager.close(); s.store.close();}
+});
+
 test('RPC timeout records unknown delivery and terminates its transport', async () => {
   const s = setup(), manager = new SessionManager(s.adapter(), s.store);
   try {await manager.start(s.spec); await manager.input('timeout'); await until(() => manager.state === 'failed', 4000); assert.equal(manager.history()[0]?.status, 'unknown');}
@@ -129,7 +162,7 @@ test('config precedence, engine-specific reset and immutable instruction snapsho
 
 test('project lease excludes a second writer and journal recovers a partial last record', () => {
   const s = setup(), other = new StateStore(s.loaded.stateDirectory);
-  try {assert.throws(() => other.acquire(), /active runner/);} finally {other.close();}
+  try {assert.throws(() => other.acquire(), /active runner/); assert.deepEqual(other.list(), []);} finally {other.close();}
   s.store.append(s.spec.appSessionId, 'checkpoint', {spec: s.spec, runtime: {engine: 'codex', executableVersion: '0.163.0'}, nativeSessionId: 'native', lastJournalSequence: 0});
   s.store.append(s.spec.appSessionId, 'input', {requestId: 'delivery', text: 'safe', mode: 'next-turn'});
   s.store.append(s.spec.appSessionId, 'receipt', {requestId: 'delivery', status: 'sent'}); s.store.close();

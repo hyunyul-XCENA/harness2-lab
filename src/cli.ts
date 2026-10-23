@@ -36,8 +36,8 @@ async function main(): Promise<void> {
   let shutdown: Promise<void> | undefined;
   const close = (): Promise<void> => shutdown ??= (async () => {rl?.close(); try {await manager?.close();} finally {store.close();}})();
   try {
-    store.acquire();
     if (values.sessions) {console.table(store.list()); return;}
+    store.acquire();
     initializeHome(home);
     manager = new SessionManager(new CodexAdapter({command: values['codex-path'], timeoutMs: config.runtime.startupTimeoutMs}), store);
     let streaming = false;
@@ -52,6 +52,7 @@ async function main(): Promise<void> {
       if (p.type === 'tool.started') line(`[tool ${p.name}] ${clean(JSON.stringify(p.input))}`);
       if (p.type === 'request.pending') {
         line(`[${p.request.kind} ${p.request.requestId}] ${p.request.kind === 'approval' ? clean(p.request.description) : clean(JSON.stringify(p.request.questions))}`);
+        if (p.request.kind === 'approval') line(clean(JSON.stringify(p.request.input, null, 2)));
         rl?.prompt();
       }
       if (p.type === 'submission.changed' && ['unknown', 'rejected'].includes(p.receipt.status)) line(`[${p.receipt.status}] ${clean(p.receipt.evidence ?? '')}`);
@@ -85,7 +86,7 @@ async function main(): Promise<void> {
         if (!shutdown) rl?.prompt();
       }).catch(error => {line(`[error] ${clean(errorText(error))}`); rl?.prompt();});
     });
-    const signal = () => {if (manager?.activeTurn) void manager.interrupt().catch(error => line(errorText(error))); else void close();};
+    const signal = () => {if (manager?.activeTurn && manager.state !== 'failed') void manager.interrupt().catch(error => line(errorText(error))); else void close();};
     rl.on('SIGINT', signal); process.on('SIGINT', signal); process.once('SIGTERM', () => {void close();});
     rl.prompt();
     await new Promise<void>(resolve => rl!.once('close', resolve));

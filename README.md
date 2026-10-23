@@ -27,7 +27,7 @@ npm start -- --project "C:\작업\내프로젝트"
 | `/ack-unknown` | 불확실한 이전 전달을 확인했음을 표시. 입력을 재전송하지 않음 |
 | `/quit` | 앱 프로세스 종료, 대화 이력 보존 |
 
-승인·질문은 기본 3분 뒤 만료한다. 승인은 응답이 없으면 거절한다. 현재 terminal UI는 비밀값을 묻는 질문을 지원하지 않는다. 처리하지 못하는 native 요청에는 권한을 주지 않는다.
+승인·질문은 기본 3분 뒤 만료한다. 승인은 응답이 없으면 거절한다. 비밀값 질문은 해당 요청만 거절하고 연결을 유지한다. 파일 수정 승인에는 전달받은 파일 목록과 diff를 표시한다. 현재 commandExecution/fileChange 승인만 지원하며, 별도의 `item/permissions/requestApproval`(추가 네트워크·경로 권한), MCP elicitation, dynamic tool call 등은 거절한다.
 
 ```powershell
 npm start -- --project "C:\작업\내프로젝트" --sessions
@@ -35,6 +35,8 @@ npm start -- --project "C:\작업\내프로젝트" --resume "화면에 표시된
 ```
 
 재개는 저장된 모델과 지침 스냅샷을 사용한다. 새 설정은 새 세션에 적용된다. 연결이 끊기면 자동으로 다시 보내지 않는다. `unknown` 입력은 native turn ID로 완료를 확인할 수 있을 때만 복구한다. 원래 turn이 여전히 실행 중이면 재접속을 거절하므로 종료 후 다시 시도한다. 재개할 때 전송 전 대기 입력은 취소하며 `/history`로 확인할 수 있다.
+
+완료를 확인할 수 없는 입력의 `/ack-unknown` 확인은 재접속할 때마다 다시 요구한다. Ctrl+C는 연결 실패 상태에서는 앱을 종료한다. 강제 종료·전원 중단 때 자식 프로세스 종료는 보장하지 않으며, `/quit`으로 닫을 때는 소유한 프로세스의 종료를 확인한다.
 
 ## 설정과 저장
 
@@ -63,6 +65,8 @@ npm start -- --project "C:\작업\내프로젝트" --resume "화면에 표시된
 지침은 세션 시작 시 developer instructions에 추가한다. 기존 AGENTS.md/CLAUDE.md를 수정하지 않는다. 현재 compiler는 `instructions`만 활성화한다. `skills`/`scripts` 및 `improvement.enabled=true`는 아직 거절한다.
 
 프로젝트 `.terminal-runner/`에는 `sessions/<id>/events.jsonl`, `state.sqlite`, `lease.sqlite`, `materialized/<digest>/bundle.json`이 생긴다. JSONL을 먼저 fsync하고 SQLite 검색 인덱스를 갱신한다. 중간에 끊긴 마지막 JSONL 줄은 별도 `.partial-*`로 보존하고 복구한다. SQLite OS lock으로 프로젝트당 실행기 하나만 허용한다. 프로젝트의 `.gitignore`에 `.terminal-runner/`를 추가하는 것을 권장한다.
+
+완전한 JSONL 줄이 손상됐으면 파일·줄 번호를 알리고 프로젝트의 실행을 중단한다. 원본 상태 디렉터리를 보존하고 백업으로 복구해야 한다. 현재는 출력 조각마다 동기 저장하므로 매우 긴 응답에서 표시가 늦어질 수 있다. 출력 묶음 저장과 전체 화면 UI는 A3에서 다룬다.
 
 입력과 답변은 로컬 기록에 남는다. 알려진 환경변수 비밀값과 일부 credential 필드는 가리지만, 모든 비밀을 탐지하는 기능은 아니다. Codex 자체의 native 기록은 Codex가 관리한다. 지침 digest는 추가 지침과 프로젝트 루트의 대표 지침 파일을 추적하며, 사용자/상위 디렉터리/managed 설정 전체를 고정하지 않는다.
 

@@ -29,6 +29,7 @@ export class CodexAdapter implements AgentAdapter {
   private activeTurn?: string;
   private completedTurns = new Set<string>();
   private startedTurns = new Set<string>();
+  private fileChanges = new Map<string, Json>();
   constructor(private options: CodexOptions = {}) {}
   private get command(): string {return this.options.command ?? (process.platform === 'win32' ? 'codex.exe' : 'codex');}
   async inspect(): Promise<{runtime: RuntimeIdentity; capabilities: Capabilities}> {
@@ -135,6 +136,7 @@ export class CodexAdapter implements AgentAdapter {
     } else if (method === 'turn/completed') {
       const turn = record(params.turn), turnId = string(turn.id, 'turn.id');
       this.completedTurns.add(turnId); if (this.activeTurn === turnId) this.activeTurn = undefined;
+      this.fileChanges.clear();
       for (const receipt of this.submissions.values()) if (receipt.nativeTurnId === turnId) this.receipt({...receipt, status: 'completed'});
       for (const [key, request] of this.requests) if (request.request.nativeTurnId === turnId) {clearTimeout(request.timer); this.requests.delete(key); this.emit({type: 'request.resolved', requestId: key});}
       this.emit({type: 'turn.completed', nativeTurnId: turnId, outcome: turn.status === 'completed' ? 'success' : turn.status === 'interrupted' ? 'interrupted' : 'failed'});
@@ -143,14 +145,18 @@ export class CodexAdapter implements AgentAdapter {
     } else if (method === 'item/started' || method === 'item/completed') {
       const item = record(params.item), name = String(item.type);
       if (['commandExecution', 'fileChange', 'mcpToolCall', 'webSearch'].includes(name)) {
-        if (method === 'item/started') this.emit({type: 'tool.started', itemId: string(item.id, 'item.id'), name, input: {description: String(item.command ?? item.tool ?? name)}});
+        if (method === 'item/started') {
+          if (name === 'fileChange') this.fileChanges.set(string(item.id, 'item.id'), (item.changes ?? []) as Json);
+          this.emit({type: 'tool.started', itemId: string(item.id, 'item.id'), name, input: name === 'fileChange' ? {changes: (item.changes ?? []) as Json} : {description: String(item.command ?? item.tool ?? name)}});
+        }
         else this.emit({type: 'tool.completed', itemId: string(item.id, 'item.id'), success: item.status !== 'failed' && item.status !== 'declined'});
       }
     } else if (method === 'thread/tokenUsage/updated') {
       const usage = record(record(params.tokenUsage).total);
       this.emit({type: 'usage.updated', inputTokens: Number(usage.inputTokens ?? 0), outputTokens: Number(usage.outputTokens ?? 0)});
     } else if (method === 'error') {
-      this.emit({type: 'adapter.error', code: 'NATIVE_ERROR', message: String(record(params.error).message ?? 'Codex error'), recoverable: params.willRetry === true});
+      // willRetry describes this turn, not the health of the connection.
+      this.emit({type: 'adapter.error', code: 'NATIVE_ERROR', message: String(record(params.error).message ?? 'Codex error'), recoverable: true});
     } else if (method === 'serverRequest/resolved') {
       for (const [key, request] of this.requests) if (request.id === params.requestId) {clearTimeout(request.timer); this.requests.delete(key); this.emit({type: 'request.resolved', requestId: key});}
     }
@@ -163,11 +169,16 @@ export class CodexAdapter implements AgentAdapter {
     const base = {requestId, connectionEpoch: this.live!.connectionEpoch, nativeTurnId: typeof params.turnId === 'string' ? params.turnId : undefined, expiresAt: new Date(Date.now() + (this.options.approvalTimeoutMs ?? 180000)).toISOString()};
     let request: PendingRequest;
     if (method === 'item/commandExecution/requestApproval' || method === 'item/fileChange/requestApproval') {
-      request = {...base, kind: 'approval', toolName: method.includes('commandExecution') ? 'commandExecution' : 'fileChange', description: String(params.command ?? params.reason ?? 'File changes'), input: params as Json};
+      const changes = this.fileChanges.get(String(params.itemId));
+      request = {...base, kind: 'approval', toolName: method.includes('commandExecution') ? 'commandExecution' : 'fileChange', description: String(params.command ?? params.reason ?? 'File changes'), input: {...params, ...(changes ? {changes} : {})} as Json};
     } else if (method === 'item/tool/requestUserInput') {
+      if ((params.questions as unknown[]).some(raw => record(raw).isSecret === true)) {
+        this.rpc!.send({id: rawId, error: {code: -32601, message: 'Secret input is not supported by this client; no answer provided'}});
+        this.emit({type: 'adapter.error', code: 'UNSUPPORTED_SECRET_INPUT', message: 'Secret input request declined; session remains open', recoverable: true});
+        return;
+      }
       request = {...base, kind: 'question', questions: (params.questions as unknown[]).map(raw => {
         const question = record(raw);
-        if (question.isSecret === true) throw new Error('Secret answers are not supported by this terminal UI');
         return {id: string(question.id, 'question.id'), text: string(question.question, 'question'), allowFreeText: question.isOther === true || question.options == null, ...(Array.isArray(question.options) ? {options: question.options.map(option => string(record(option).label, 'label'))} : {})};
       })};
     } else {this.rpc!.send({id: rawId, error: {code: -32601, message: 'Unsupported client request; no permission granted'}}); return;}
