@@ -143,6 +143,7 @@ export interface AgentAdapter {
   close(session: LiveSession): Promise<void>;
 }
 
+/** Legacy product experiment draft; the original Harness² mode uses upstream contracts. */
 export interface ValidationCommand {
   id: string;
   program: string;

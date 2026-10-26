@@ -1,8 +1,42 @@
-# 터미널 에이전트 실행기
+# Harness² 실행 호스트와 대화 프로토타입
 
-Codex App Server와 Claude Agent SDK에 연결해 **한 대화를 계속 이어가는 로컬 터미널 앱**이다. 현재 A0–A3 버전은 전체 화면 TUI에서 두 실행기의 대화·선택·재개·중단·승인·질문 응답과 설정/기록 저장을 지원한다. Harness²의 자동 지침 개선·비교 실험은 다음 단계다.
+**원본 Harness²의 Python 코어를 고정 버전으로 직접 실행**한다. 과제별 Propose–Probe–Compose, 최종 결과 선택, Reflection과 domain 경험 저장을 원본 코드에 맡긴다. 별도로 기존 Codex/Claude 대화 TUI 프로토타입도 남아 있다. 두 실행 경로는 설정·세션·harness 형식이 다르다.
 
-## 실행
+## 원본 Harness² 실행
+
+Node.js 24.x와 Python **3.12 또는 3.13**이 필요하다. 모델 없는 데모는 Windows에서도 실행할 수 있다.
+
+```powershell
+cd C:\Users\hyunyul\orca\projects\research\terminal-runner
+npm ci --ignore-scripts
+npm run harness2 -- demo --k 1 --mode both
+```
+
+원본 deterministic demo가 두 과제에서 기준 실행 → 후보 제안·실행 → Compose → 최종 실행·선택 → Reflection을 수행한다. 두 번째 과제는 첫 과제의 경험을 참고한다. 편집은 미리 정해진 fixture이며 **LLM 호출이나 실제 프로젝트의 성능 향상 검증은 아니다**. 기본 출력은 `.terminal-runner/harness2/demo-<id>/`다.
+
+```powershell
+# k=2: parallel / sequential의 원본 예산·경험 전달 확인
+npm run harness2 -- demo --k 2 --mode both --output .test-artifacts/harness2-k2
+# 같은 출력·같은 설정으로 실행하면 원본의 완료 결과를 재사용
+npm run harness2 -- demo --k 2 --mode both --output .test-artifacts/harness2-k2
+npm run harness2 -- verify
+npm run test:harness2
+```
+
+`npm start -- --harness2 demo --k 1`도 같은 원본 호스트를 연다. Python 경로가 다르면 PowerShell에서 `$env:HARNESS2_PYTHON = 'C:\Python313\python.exe'`처럼 지정한다. 기존 chat 전용 설정은 원본 실행에 적용하지 않는다.
+
+실제 모델을 사용하는 JobBench/LAB/WorkBuddy 실행은 **Linux/WSL에서 원본 의존성·모델·인증을 준비**해야 한다. `run`, `judge`, `report`, `setup`, `check`는 원본 CLI에 인자를 그대로 전달한다. 각 명령의 `--help`는 Windows에서도 볼 수 있다. 실행·채점·보고에 같은 benchmark/executor/mode/k/seed를 사용한다. 모델과 데이터 준비는 [원본 setup](vendor/harness2/docs/SETUP.md), [benchmark 설명](vendor/harness2/docs/BENCHMARKS.md)을 따른다. 고정한 원본 커밋에는 README가 언급하는 `.env.example`이 없으므로 문서의 모델 환경변수를 직접 설정한다.
+
+```bash
+# Linux/WSL에서 원본 setup과 check를 마친 뒤 실행하는 예
+npm run harness2 -- run --bench lab --substrate oc --k 1 --mode parallel --only-domains antitrust-competition --max-tasks 1
+npm run harness2 -- judge --bench lab --substrate oc --k 1 --mode parallel
+npm run harness2 -- report --bench lab --substrate oc --k 1 --mode parallel
+```
+
+원본 커밋은 `1cfe254e8d25b15f37048c3730134686abe60335`다. 출처·파일 hash는 [PROVENANCE.json](vendor/harness2/PROVENANCE.json), 로컬 Windows 잠금/경로 호환 수정은 [재생성 스크립트](scripts/vendor-harness2.py)에 기록한다. core 알고리즘을 수동 A/B·사용자 채택 흐름으로 바꾸지 않는다. [현재 설계](docs/design.md)에 원본과 같은 점·호환 패치·아직 연결하지 않은 부분을 구분했다.
+
+## 기존 대화 TUI 실행 — 원본 PPC가 적용되지 않는 프로토타입
 
 Node.js **24.x**와 사용할 실행기의 로그인이 필요하다. 지원 조합은 **Codex CLI 0.163.0**, 또는 **Claude Code 2.1.309 + Agent SDK 0.3.309**다. SDK는 `npm ci`로 설치한다. 다른 CLI 버전은 연결 전에 거절한다. `codex --version`, `claude --version`으로 확인할 수 있다. 로컬 실행기의 기존 인증을 사용하며 앱 설정에 API key를 복사하지 않는다.
 
@@ -110,4 +144,4 @@ npm run smoke:claude-input
 - [공통 adapter 계약](contracts/agent.ts), [설정 스키마](contracts/runner-config.schema.json)
 - [Harness² 구조](../.archify/architecture-harness2-terminal-20261023-151658/harness2/harness2.html)
 - [지속 세션 구조](../.archify/architecture-harness2-terminal-20261023-151658/terminal-runtime/terminal-runtime.html)
-- [개선 실험 구조](../.archify/architecture-harness2-terminal-20261023-151658/improvement-loop/improvement-loop.html)
+- [방향 전환 전의 수동 개선 실험 구상 — 현재 원본 알고리즘과 다름](../.archify/architecture-harness2-terminal-20261023-151658/improvement-loop/improvement-loop.html)

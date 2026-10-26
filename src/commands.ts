@@ -1,7 +1,8 @@
 import type {SessionManager} from './session.js';
 import {errorText, record} from './util.js';
 
-export const help = `Terminal Runner 0.3 — persistent Codex / Claude sessions
+export const help = `Terminal Runner 0.4 — chat prototype / pinned original Harness² engine
+Original engine: npm start -- --harness2 demo --k 1 --mode both
 Usage: npm start -- --project <directory> [--engine codex|claude] [--home <directory>] [--model <model>] [--resume <session-id>]
 Options: --codex-path <executable>, --claude-path <executable>, --sessions, --select, --plain, --tui, --help
 Interactive terminals use the full-screen UI. --plain keeps line input; pipes use plain mode.
@@ -17,7 +18,7 @@ Commands:
   /quit                      close the runner, preserving the native thread
 TUI: F2 review pending request, PgUp/PgDn scroll, Esc return, Up/Down input history.
 Normal input starts a turn. During a turn, one message can be queued.
-Claude follow-ups queue until the current turn ends. Improvement experiments are a later milestone.`;
+Claude follow-ups queue until the current turn ends. Chat turns do not run Harness² automatically; use --harness2 for the original method.`;
 
 export interface Commands {
   manager: SessionManager;

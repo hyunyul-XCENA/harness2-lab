@@ -1,0 +1,440 @@
+{
+  "repository": "https://github.com/google-research/harness2",
+  "commit": "1cfe254e8d25b15f37048c3730134686abe60335",
+  "license": "Apache-2.0 (third-party notices retained)",
+  "hashAlgorithm": "sha256-lf",
+  "patches": [
+    "Windows/POSIX exclusive summary-file locking and bounded retry of atomic replace on Windows sharing errors",
+    "Canonical POSIX harness keys on every platform; method, prompts, selection and library policy unchanged"
+  ],
+  "files": {
+    "CONTRIBUTING.md": {
+      "upstreamSha256": "dc35e5c3f94772d4f8b70c55d52bae807a7354e13b891b6837fef1a3e2967b92",
+      "sha256": "dc35e5c3f94772d4f8b70c55d52bae807a7354e13b891b6837fef1a3e2967b92"
+    },
+    "LICENSE": {
+      "upstreamSha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    "MANIFEST.in": {
+      "upstreamSha256": "c63d6ff6c6579316b8d97eaa7b57e068d1543bf9dd4747631e4641709e375441",
+      "sha256": "c63d6ff6c6579316b8d97eaa7b57e068d1543bf9dd4747631e4641709e375441"
+    },
+    "README.md": {
+      "upstreamSha256": "17639ac4194bb5c042cbf645430a772ae9be81baee95ab41eaea73cafa138f23",
+      "sha256": "17639ac4194bb5c042cbf645430a772ae9be81baee95ab41eaea73cafa138f23"
+    },
+    "dependencies/PINNED.md": {
+      "upstreamSha256": "4d6b849df75fd900022fcc3765e7af971debdae57aac8176317a5ea90fe19dbd",
+      "sha256": "4d6b849df75fd900022fcc3765e7af971debdae57aac8176317a5ea90fe19dbd"
+    },
+    "dependencies/README.md": {
+      "upstreamSha256": "10dc39d7b1713dda734d83efbd3d81dc86c6c8c4403e378b1f000ceba91ee1dc",
+      "sha256": "10dc39d7b1713dda734d83efbd3d81dc86c6c8c4403e378b1f000ceba91ee1dc"
+    },
+    "docs/BENCHMARKS.md": {
+      "upstreamSha256": "367dd423a500c9806cb121913fa5aa8a8992da1dd3755d65a55486e70e2715ef",
+      "sha256": "367dd423a500c9806cb121913fa5aa8a8992da1dd3755d65a55486e70e2715ef"
+    },
+    "docs/EXPERIMENTS.md": {
+      "upstreamSha256": "ce168deb03d4607c70e00e092701d2f6d5987db04e09779b0e3cad48b7fca558",
+      "sha256": "ce168deb03d4607c70e00e092701d2f6d5987db04e09779b0e3cad48b7fca558"
+    },
+    "docs/SETUP.md": {
+      "upstreamSha256": "49cce7fbda4352102feea1e57a01d714118600980abcf2ff853953a65565014a",
+      "sha256": "49cce7fbda4352102feea1e57a01d714118600980abcf2ff853953a65565014a"
+    },
+    "harness2/__init__.py": {
+      "upstreamSha256": "de20a79ef3cf3974bf32cb6afdbb32608655676e749a466ffd6c7c173bb7e26a",
+      "sha256": "de20a79ef3cf3974bf32cb6afdbb32608655676e749a466ffd6c7c173bb7e26a"
+    },
+    "harness2/benchmarks/__init__.py": {
+      "upstreamSha256": "6c0fb1a1a69906258c5a0a7765aa7d0e862c71ac955707d938933f9c26f73fa8",
+      "sha256": "6c0fb1a1a69906258c5a0a7765aa7d0e862c71ac955707d938933f9c26f73fa8"
+    },
+    "harness2/benchmarks/jb_opencode_runner.py": {
+      "upstreamSha256": "aadfb0d1307b41da84900d353505c72d322937aef8f5400e2b95c7701ae9b768",
+      "sha256": "aadfb0d1307b41da84900d353505c72d322937aef8f5400e2b95c7701ae9b768"
+    },
+    "harness2/benchmarks/jobbench.py": {
+      "upstreamSha256": "446738c854a5fc1639c7a8a312aa90367d1f73bc7f1df1f00ccd2d243b2aeafb",
+      "sha256": "446738c854a5fc1639c7a8a312aa90367d1f73bc7f1df1f00ccd2d243b2aeafb"
+    },
+    "harness2/benchmarks/lab.py": {
+      "upstreamSha256": "95bfa213048e870f6c4e45f9040d881ef60f2282d25175b0f8fefe6ce9eb4e71",
+      "sha256": "95bfa213048e870f6c4e45f9040d881ef60f2282d25175b0f8fefe6ce9eb4e71"
+    },
+    "harness2/benchmarks/tasks.py": {
+      "upstreamSha256": "368fa8d5f7596522a9e54c6c0cb9cd8feb12a3de110d29af05cdd7e6f74dabc7",
+      "sha256": "368fa8d5f7596522a9e54c6c0cb9cd8feb12a3de110d29af05cdd7e6f74dabc7"
+    },
+    "harness2/benchmarks/wb_render.py": {
+      "upstreamSha256": "df516796e3f29842b2ee9efa0f9f7274fe062b6e1232be75fb83cf76a93c32b5",
+      "sha256": "df516796e3f29842b2ee9efa0f9f7274fe062b6e1232be75fb83cf76a93c32b5"
+    },
+    "harness2/benchmarks/workbuddy.py": {
+      "upstreamSha256": "1e08d17a9ad0b23a3b6dabc6da2d2e65a8110cba17d7882d5f113940f7dfeb91",
+      "sha256": "1e08d17a9ad0b23a3b6dabc6da2d2e65a8110cba17d7882d5f113940f7dfeb91"
+    },
+    "harness2/cli/__init__.py": {
+      "upstreamSha256": "8fd4345e5586666df552582be8e8d69adbb4daffae69088b08a773400c844b78",
+      "sha256": "8fd4345e5586666df552582be8e8d69adbb4daffae69088b08a773400c844b78"
+    },
+    "harness2/cli/_common.py": {
+      "upstreamSha256": "aba8393739a6ae343ce95ef005c7037b737466f444064aba63735f2ac5a22037",
+      "sha256": "aba8393739a6ae343ce95ef005c7037b737466f444064aba63735f2ac5a22037"
+    },
+    "harness2/cli/bridge.py": {
+      "upstreamSha256": "6092475dd656eccbd454067fd20166d2ca44948d91d3c574b4da2e3b28e2af7e",
+      "sha256": "6092475dd656eccbd454067fd20166d2ca44948d91d3c574b4da2e3b28e2af7e"
+    },
+    "harness2/cli/check.py": {
+      "upstreamSha256": "0c42509009b292613d46c7a87287036b5080116c14b0da4ead984896d108c2e0",
+      "sha256": "0c42509009b292613d46c7a87287036b5080116c14b0da4ead984896d108c2e0"
+    },
+    "harness2/cli/demo.py": {
+      "upstreamSha256": "f8ba578ff547d1f78666ee222d0ace3fea34d468405c9766d103b856c6272d25",
+      "sha256": "f8ba578ff547d1f78666ee222d0ace3fea34d468405c9766d103b856c6272d25"
+    },
+    "harness2/cli/judge.py": {
+      "upstreamSha256": "7dfb882266dd541100e5a1d4f7ac6cf728441e26c6850e420651bae8a4c7fb26",
+      "sha256": "7dfb882266dd541100e5a1d4f7ac6cf728441e26c6850e420651bae8a4c7fb26"
+    },
+    "harness2/cli/report.py": {
+      "upstreamSha256": "2cb4460658d982d9ef9921b4393b1adbb95d1909b07a967759167b97f78cf5d4",
+      "sha256": "2cb4460658d982d9ef9921b4393b1adbb95d1909b07a967759167b97f78cf5d4"
+    },
+    "harness2/cli/run_sweep.py": {
+      "upstreamSha256": "83998848662cdf3e101250ae13afbfbf82d9b88db4d9181ab973ae9fe32f8b0a",
+      "sha256": "83998848662cdf3e101250ae13afbfbf82d9b88db4d9181ab973ae9fe32f8b0a"
+    },
+    "harness2/cli/setup.py": {
+      "upstreamSha256": "c0a5438fcbea074e61b749554198638777f393c48d0a686161699e298ee18d0b",
+      "sha256": "c0a5438fcbea074e61b749554198638777f393c48d0a686161699e298ee18d0b"
+    },
+    "harness2/config.py": {
+      "upstreamSha256": "0db5ba0c42b87f5b14cbff2d11aaecddda1cd45500903c1d61741232bd1e0a88",
+      "sha256": "0db5ba0c42b87f5b14cbff2d11aaecddda1cd45500903c1d61741232bd1e0a88"
+    },
+    "harness2/core/__init__.py": {
+      "upstreamSha256": "ce487673e00fd8921139e3afb688c566fc43d9b07acba048d2102663a81f7151",
+      "sha256": "ce487673e00fd8921139e3afb688c566fc43d9b07acba048d2102663a81f7151"
+    },
+    "harness2/core/_filelock.py": {
+      "upstreamSha256": null,
+      "sha256": "ddf394272ababb5a90daa4c36aa55f265b972a60596414a1ccaa1bc12b19e817"
+    },
+    "harness2/core/context.py": {
+      "upstreamSha256": "63dd482e5d9467d7e659d186a11289fc7861d08c8aed603244ff0cee92de91f3",
+      "sha256": "63dd482e5d9467d7e659d186a11289fc7861d08c8aed603244ff0cee92de91f3"
+    },
+    "harness2/core/judge.py": {
+      "upstreamSha256": "0f8cd6f4ec659f5d5976bdad4ccdc432651f51486c3fbbee36be53a6d619fbba",
+      "sha256": "0f8cd6f4ec659f5d5976bdad4ccdc432651f51486c3fbbee36be53a6d619fbba"
+    },
+    "harness2/core/ledger.py": {
+      "upstreamSha256": "7059de5d90fc9fb8d4b3b799ff075f09d34f182ba0fdb56eb9d8b8383d0bbf55",
+      "sha256": "7059de5d90fc9fb8d4b3b799ff075f09d34f182ba0fdb56eb9d8b8383d0bbf55"
+    },
+    "harness2/core/library.py": {
+      "upstreamSha256": "00219fda201a030f43b35b49c4e73ccf336aedc81164144c435b4b06a1256dd3",
+      "sha256": "00219fda201a030f43b35b49c4e73ccf336aedc81164144c435b4b06a1256dd3"
+    },
+    "harness2/core/prompts.py": {
+      "upstreamSha256": "d1f4f8db4ab4cb4addcbca175b548db2270375499fda727ac95d271c63cc2504",
+      "sha256": "d1f4f8db4ab4cb4addcbca175b548db2270375499fda727ac95d271c63cc2504"
+    },
+    "harness2/core/proposer.py": {
+      "upstreamSha256": "475ef49d72228e249d7172d793f8362913774412402dfd259ae6e01c6586e175",
+      "sha256": "475ef49d72228e249d7172d793f8362913774412402dfd259ae6e01c6586e175"
+    },
+    "harness2/core/recursion.py": {
+      "upstreamSha256": "b299813b5334f2c0f89024a7f14162f0fdd5418ebd4413be93920b5334a204c1",
+      "sha256": "b299813b5334f2c0f89024a7f14162f0fdd5418ebd4413be93920b5334a204c1"
+    },
+    "harness2/core/report.py": {
+      "upstreamSha256": "9d5b119ec93dc6b2c6341095130103ab4ba2f2dc6867c4b7ea759fca5de3cac9",
+      "sha256": "9d5b119ec93dc6b2c6341095130103ab4ba2f2dc6867c4b7ea759fca5de3cac9"
+    },
+    "harness2/core/runmark.py": {
+      "upstreamSha256": "99a7c3f0b023623224c3376bc0390e985b8e6608f0928d34b821ffe6c36f9175",
+      "sha256": "99a7c3f0b023623224c3376bc0390e985b8e6608f0928d34b821ffe6c36f9175"
+    },
+    "harness2/core/schedule.py": {
+      "upstreamSha256": "6e46c5ab1e4ac111818ff3acd6b636e39d650898189ac0c21802a8233ad4cd38",
+      "sha256": "de1d6327a2e8e79bc61e085cc46f4477936995ee412494e1da6c840d5cddbd2f"
+    },
+    "harness2/core/selection.py": {
+      "upstreamSha256": "2cb3353b2fd4ec72e6322f2c1f35db1ff2cdab88b0b50c8809d1841d235cb92f",
+      "sha256": "2cb3353b2fd4ec72e6322f2c1f35db1ff2cdab88b0b50c8809d1841d235cb92f"
+    },
+    "harness2/core/spec.py": {
+      "upstreamSha256": "f245ec9e314778e2a1a51594b906584255b9eed8340c073b864a8a6f2c8dc400",
+      "sha256": "f245ec9e314778e2a1a51594b906584255b9eed8340c073b864a8a6f2c8dc400"
+    },
+    "harness2/core/tree.py": {
+      "upstreamSha256": "c2a15690b1b6b02156e922c5e0b1a215c5065d7bea5a3bae2e56b47309197552",
+      "sha256": "d5885aeba08dfcdeb819a117fb935473aa572809d69cf43aea93dc4c44c3c87f"
+    },
+    "harness2/demo.py": {
+      "upstreamSha256": "8f338b3254922a8a48d66162f7796dde435d3ef65a7ccd441ef604c81a1d39d4",
+      "sha256": "8f338b3254922a8a48d66162f7796dde435d3ef65a7ccd441ef604c81a1d39d4"
+    },
+    "harness2/install.py": {
+      "upstreamSha256": "a75eaa452d405020a268864e1f047346ec10cb64b81c4045f6bda0f72bd152c4",
+      "sha256": "a75eaa452d405020a268864e1f047346ec10cb64b81c4045f6bda0f72bd152c4"
+    },
+    "harness2/preflight.py": {
+      "upstreamSha256": "78b6a7bc81ced28987f6d9a47bb20e7e5c6d70ff89f2a70cc9a6d179363d6c53",
+      "sha256": "78b6a7bc81ced28987f6d9a47bb20e7e5c6d70ff89f2a70cc9a6d179363d6c53"
+    },
+    "harness2/substrate/__init__.py": {
+      "upstreamSha256": "57f95d86cb0d4acfd60fddd52f2d140ffadcf0c318e28093532580339dc3f37d",
+      "sha256": "57f95d86cb0d4acfd60fddd52f2d140ffadcf0c318e28093532580339dc3f37d"
+    },
+    "harness2/substrate/base.py": {
+      "upstreamSha256": "50a63f174e3772888af3882f3ffff3162cefba8d36e927b1a5de343c5806dd16",
+      "sha256": "50a63f174e3772888af3882f3ffff3162cefba8d36e927b1a5de343c5806dd16"
+    },
+    "harness2/substrate/codex.py": {
+      "upstreamSha256": "281a07271ebed72a617a671ced1b9137901aa8f5d1deffb56c706f44c295e416",
+      "sha256": "281a07271ebed72a617a671ced1b9137901aa8f5d1deffb56c706f44c295e416"
+    },
+    "harness2/substrate/opencode.py": {
+      "upstreamSha256": "dabc79953d164a0d38802125756379ffa6acdc7b553d2f9036475f8220166ff0",
+      "sha256": "dabc79953d164a0d38802125756379ffa6acdc7b553d2f9036475f8220166ff0"
+    },
+    "pyproject.toml": {
+      "upstreamSha256": "c78fd0d09d2f92bf796871c168b548dd4d33e21566dbb582e343266e24a0bada",
+      "sha256": "c78fd0d09d2f92bf796871c168b548dd4d33e21566dbb582e343266e24a0bada"
+    },
+    "scripts/check_provenance.py": {
+      "upstreamSha256": "8824e1903e106b55005f7ad0ceb0de4db5353599298656f8fdbc7d025dbd8bcd",
+      "sha256": "8824e1903e106b55005f7ad0ceb0de4db5353599298656f8fdbc7d025dbd8bcd"
+    },
+    "scripts/check_setup.py": {
+      "upstreamSha256": "80bbfc87370cce7f77884b963659180fd572d8795b6a60f87d87043d4a9011c1",
+      "sha256": "80bbfc87370cce7f77884b963659180fd572d8795b6a60f87d87043d4a9011c1"
+    },
+    "scripts/render_readme_typing.py": {
+      "upstreamSha256": "79513f898a84028850f52cecf7f08161f854da1a08fb7e831d028e388837713a",
+      "sha256": "79513f898a84028850f52cecf7f08161f854da1a08fb7e831d028e388837713a"
+    },
+    "scripts/run_jobbench.sh": {
+      "upstreamSha256": "e8d89cff47433e50a790156dc1a46fc3991e4f3cc7f46593a48a1d6ef039ea4c",
+      "sha256": "e8d89cff47433e50a790156dc1a46fc3991e4f3cc7f46593a48a1d6ef039ea4c"
+    },
+    "scripts/run_lab.sh": {
+      "upstreamSha256": "b967e519dfb93f57385c7f31222642fcfc8d68a061cbaf4a2f24ef923c0edae0",
+      "sha256": "b967e519dfb93f57385c7f31222642fcfc8d68a061cbaf4a2f24ef923c0edae0"
+    },
+    "scripts/run_workbuddy.sh": {
+      "upstreamSha256": "70d20b9a8d0cd7138cc8a8eacf1395e76bc7804d60915a2b5114d9d51564cb3a",
+      "sha256": "70d20b9a8d0cd7138cc8a8eacf1395e76bc7804d60915a2b5114d9d51564cb3a"
+    },
+    "scripts/setup_benchmark.py": {
+      "upstreamSha256": "80291a59cf6e6fcd761c605ead0c5a6bdf11e92fd1f82bc42c72842a6ec5e777",
+      "sha256": "80291a59cf6e6fcd761c605ead0c5a6bdf11e92fd1f82bc42c72842a6ec5e777"
+    },
+    "scripts/split_tasks.py": {
+      "upstreamSha256": "491a9b2aba767e9cf6d5c98e96e00e6575e614c519f52491f7531546881557c0",
+      "sha256": "491a9b2aba767e9cf6d5c98e96e00e6575e614c519f52491f7531546881557c0"
+    },
+    "tests/test_workflow.py": {
+      "upstreamSha256": "fda03aa8d1d4bb1a43b16a96da4a272427969a1a540cc0954709aeed7a03a4aa",
+      "sha256": "fda03aa8d1d4bb1a43b16a96da4a272427969a1a540cc0954709aeed7a03a4aa"
+    },
+    "third_party/README.md": {
+      "upstreamSha256": "8f9707ef2b73561d4d3eaa121eb0c00f6063aa97dc71bdcf4b5beddfa8080ece",
+      "sha256": "8f9707ef2b73561d4d3eaa121eb0c00f6063aa97dc71bdcf4b5beddfa8080ece"
+    },
+    "third_party/jb_runner/LICENSE": {
+      "upstreamSha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    "third_party/jb_runner/PROVENANCE.md": {
+      "upstreamSha256": "7e16c8f5e43aa272baa5cf39bf245b42cf1f40f885457ac4123c91b7de0b06ef",
+      "sha256": "7e16c8f5e43aa272baa5cf39bf245b42cf1f40f885457ac4123c91b7de0b06ef"
+    },
+    "third_party/jb_runner/codex_base_harness/AGENTS.md": {
+      "upstreamSha256": "b5df5264478dfce7d6af52f8443a1797b17967d1bc4a8c4f8c5fe43933516a89",
+      "sha256": "b5df5264478dfce7d6af52f8443a1797b17967d1bc4a8c4f8c5fe43933516a89"
+    },
+    "third_party/jb_runner/harness_baseline_oc/LongTermMEMORY.md": {
+      "upstreamSha256": "c78b55245ef1433c017bc3f6f796094e16c640b98543836f6d930972243d28d2",
+      "sha256": "c78b55245ef1433c017bc3f6f796094e16c640b98543836f6d930972243d28d2"
+    },
+    "third_party/jb_runner/harness_baseline_oc/guardrails.md": {
+      "upstreamSha256": "ebd0b0f287bcc9bea5efa063d632677b3c0fdf014c7b67bec088c11253605a53",
+      "sha256": "ebd0b0f287bcc9bea5efa063d632677b3c0fdf014c7b67bec088c11253605a53"
+    },
+    "third_party/jb_runner/harness_baseline_oc/harness.yaml": {
+      "upstreamSha256": "2b308c3b6bbbc4600b2fd5fa9396167310b076cb5a432c0fef34cf8f0883c3b9",
+      "sha256": "2b308c3b6bbbc4600b2fd5fa9396167310b076cb5a432c0fef34cf8f0883c3b9"
+    },
+    "third_party/jb_runner/harness_baseline_oc/plugin/README.md": {
+      "upstreamSha256": "266081eea5125e358f935dec777b12cb33000cc3e858a59558e3ab168b94dc87",
+      "sha256": "266081eea5125e358f935dec777b12cb33000cc3e858a59558e3ab168b94dc87"
+    },
+    "third_party/jb_runner/harness_baseline_oc/scripts/README.md": {
+      "upstreamSha256": "51d91bc0f7c98f87c8d441cb66dc5b11c3b3c6effc1b64cb0cb7ad6054615a06",
+      "sha256": "51d91bc0f7c98f87c8d441cb66dc5b11c3b3c6effc1b64cb0cb7ad6054615a06"
+    },
+    "third_party/jb_runner/harness_baseline_oc/sub_agents/README.md": {
+      "upstreamSha256": "56c5507e02c30c0d611efe2d7426141e9fc626a91599738afc7e003a07d3adb0",
+      "sha256": "56c5507e02c30c0d611efe2d7426141e9fc626a91599738afc7e003a07d3adb0"
+    },
+    "third_party/jb_runner/harness_baseline_oc/systemprompt.md": {
+      "upstreamSha256": "f5fa6862d87e4c51b78a4ce4446dace9438b3d201e0350c91ca02d0c83f552e3",
+      "sha256": "f5fa6862d87e4c51b78a4ce4446dace9438b3d201e0350c91ca02d0c83f552e3"
+    },
+    "third_party/jb_runner/harness_baseline_oc/tool_descriptions/tool_guidance.md": {
+      "upstreamSha256": "5ae4f052905a31e9573abe4971172bf40b4e1f5d265d1be072ed444232371f41",
+      "sha256": "5ae4f052905a31e9573abe4971172bf40b4e1f5d265d1be072ed444232371f41"
+    },
+    "third_party/jb_runner/run_benchmark_codex_cli_adapt.sh": {
+      "upstreamSha256": "a94c645d3061da354591dde446d11f8b3e6d08b4005f8f587668aae07c0fc100",
+      "sha256": "a94c645d3061da354591dde446d11f8b3e6d08b4005f8f587668aae07c0fc100"
+    },
+    "third_party/lab_runner/LICENSE": {
+      "upstreamSha256": "f92627d2ebe80fc0add3b171b2d7eee5e28a98dd0d0a4a5ee5829314243bb3b9",
+      "sha256": "f92627d2ebe80fc0add3b171b2d7eee5e28a98dd0d0a4a5ee5829314243bb3b9"
+    },
+    "third_party/lab_runner/PROVENANCE.md": {
+      "upstreamSha256": "b5b42319000e1522765d2520dffcd9d1058c5472cc49046ec1906ffffa66c53c",
+      "sha256": "b5b42319000e1522765d2520dffcd9d1058c5472cc49046ec1906ffffa66c53c"
+    },
+    "third_party/lab_runner/adapt_runs_cx/run_codex_lab.py": {
+      "upstreamSha256": "567d6a06d8104f853b8d83953af333ea8ef57a9053e0c9788a42692c48196556",
+      "sha256": "567d6a06d8104f853b8d83953af333ea8ef57a9053e0c9788a42692c48196556"
+    },
+    "third_party/lab_runner/opencode/README.md": {
+      "upstreamSha256": "20f2739eada1a76560c412d39603e040c420d3d36a2bf67a99a814500306f0ae",
+      "sha256": "20f2739eada1a76560c412d39603e040c420d3d36a2bf67a99a814500306f0ae"
+    },
+    "third_party/lab_runner/opencode/__init__.py": {
+      "upstreamSha256": "df2b298f529bbcba94713aa748b5a04569f38bbb3f96c9219b7fb0d7186066a8",
+      "sha256": "df2b298f529bbcba94713aa748b5a04569f38bbb3f96c9219b7fb0d7186066a8"
+    },
+    "third_party/lab_runner/opencode/render.py": {
+      "upstreamSha256": "b636a60d039fdfa66d64eb5d5d3c93a99464be2bcbd5b80dc8f91d1f104ea5ee",
+      "sha256": "b636a60d039fdfa66d64eb5d5d3c93a99464be2bcbd5b80dc8f91d1f104ea5ee"
+    },
+    "third_party/lab_runner/opencode/render_tree.py": {
+      "upstreamSha256": "54d64b461e430905b212b46902512aad38d3585fb5921b7a9982eea0413a4b73",
+      "sha256": "54d64b461e430905b212b46902512aad38d3585fb5921b7a9982eea0413a4b73"
+    },
+    "third_party/lab_runner/opencode/run_opencode.py": {
+      "upstreamSha256": "7e7178583a6acb2e07bffd1fbef78f1b0095975bc2c61f8b0038fcc528090e32",
+      "sha256": "7e7178583a6acb2e07bffd1fbef78f1b0095975bc2c61f8b0038fcc528090e32"
+    },
+    "third_party/lab_runner/opencode/scripts/read_doc.py": {
+      "upstreamSha256": "6b3c8feb3b90b0b2bbbf4cb491c81f1114b67ada04d2c988fac8cb1af68533b5",
+      "sha256": "6b3c8feb3b90b0b2bbbf4cb491c81f1114b67ada04d2c988fac8cb1af68533b5"
+    },
+    "third_party/lab_runner/opencode/session.py": {
+      "upstreamSha256": "e804e29a20ac4fd71454c85b9e15432cf303739c7f8d7aacc0df19f732bfcb62",
+      "sha256": "e804e29a20ac4fd71454c85b9e15432cf303739c7f8d7aacc0df19f732bfcb62"
+    },
+    "third_party/lab_runner/tts_lab/__init__.py": {
+      "upstreamSha256": "4ae8a9112bc00a182c983a35c8c5db40717007cefbc1b0bed89f04bc384a0106",
+      "sha256": "4ae8a9112bc00a182c983a35c8c5db40717007cefbc1b0bed89f04bc384a0106"
+    },
+    "third_party/lab_runner/tts_lab/config.py": {
+      "upstreamSha256": "f6eb8551c3cb3538de42a2e43cd5cd1aa466370d64dd681e46ec70f1c3dcf965",
+      "sha256": "f6eb8551c3cb3538de42a2e43cd5cd1aa466370d64dd681e46ec70f1c3dcf965"
+    },
+    "third_party/licenses/harvey-labs.LICENSE": {
+      "upstreamSha256": "f92627d2ebe80fc0add3b171b2d7eee5e28a98dd0d0a4a5ee5829314243bb3b9",
+      "sha256": "f92627d2ebe80fc0add3b171b2d7eee5e28a98dd0d0a4a5ee5829314243bb3b9"
+    },
+    "third_party/licenses/job-bench-eval.LICENSE": {
+      "upstreamSha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    "third_party/licenses/opencode.LICENSE": {
+      "upstreamSha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b",
+      "sha256": "625f0f619133f89bbbb2abe37369613dfa1885eba1e50d02170deb62bb42cb6b"
+    },
+    "third_party/licenses/workbuddy-bench.LICENSE": {
+      "upstreamSha256": "b466fc7a63acc5cac4275fc4b0f1e22f332ad188ea600b217076ea3a8e040956",
+      "sha256": "b466fc7a63acc5cac4275fc4b0f1e22f332ad188ea600b217076ea3a8e040956"
+    },
+    "third_party/patches/harvey-labs-judge-vertex-anthropic.diff": {
+      "upstreamSha256": "7fc4385025916054be504b98f063e2a161515b8b4dc3bcc5cd6f4272b707ed6d",
+      "sha256": "7fc4385025916054be504b98f063e2a161515b8b4dc3bcc5cd6f4272b707ed6d"
+    },
+    "third_party/patches/job-bench-eval-judge.diff": {
+      "upstreamSha256": "b5878bce91f6322c9fd1fa777b3a5dd3866922f704173a658d007c62456c5728",
+      "sha256": "b5878bce91f6322c9fd1fa777b3a5dd3866922f704173a658d007c62456c5728"
+    },
+    "third_party/patches/opencode-compat.diff": {
+      "upstreamSha256": "c9a8a0e826d48f3fcfc7d818321d128c28e1f7f7c594954c19453dfca4946dc8",
+      "sha256": "c9a8a0e826d48f3fcfc7d818321d128c28e1f7f7c594954c19453dfca4946dc8"
+    },
+    "third_party/patches/workbuddy-bench-runtime.diff": {
+      "upstreamSha256": "1d581ee0c23a9a5574ce0f9317d0bda17f6c3a2556898c89b34ccbdbd5b87b3f",
+      "sha256": "1d581ee0c23a9a5574ce0f9317d0bda17f6c3a2556898c89b34ccbdbd5b87b3f"
+    },
+    "third_party/wb_runner/LICENSE": {
+      "upstreamSha256": "b466fc7a63acc5cac4275fc4b0f1e22f332ad188ea600b217076ea3a8e040956",
+      "sha256": "b466fc7a63acc5cac4275fc4b0f1e22f332ad188ea600b217076ea3a8e040956"
+    },
+    "third_party/wb_runner/PROVENANCE.md": {
+      "upstreamSha256": "9011685c8808fb6ab56d23c823af884e5905caecd00f64323f3d02f22e45524c",
+      "sha256": "9011685c8808fb6ab56d23c823af884e5905caecd00f64323f3d02f22e45524c"
+    },
+    "third_party/wb_runner/agents/codex_agent.py": {
+      "upstreamSha256": "dbdf48c19c51d7a0389caf3f5601c1ff967ef534137d829afe8ca8792db40c9d",
+      "sha256": "dbdf48c19c51d7a0389caf3f5601c1ff967ef534137d829afe8ca8792db40c9d"
+    },
+    "third_party/wb_runner/agents/codex_harness_agent.py": {
+      "upstreamSha256": "fc1d1ecfc2de1debabb0ff84ec7a113b05536873ac76f73806835ff873b2f580",
+      "sha256": "fc1d1ecfc2de1debabb0ff84ec7a113b05536873ac76f73806835ff873b2f580"
+    },
+    "third_party/wb_runner/agents/oc_agent.py": {
+      "upstreamSha256": "5375a49b9a9e6d6d6212b47156b36dca17934e54728ddeed6218ac3662c67fff",
+      "sha256": "5375a49b9a9e6d6d6212b47156b36dca17934e54728ddeed6218ac3662c67fff"
+    },
+    "third_party/wb_runner/agents/oc_harness_agent.py": {
+      "upstreamSha256": "647e31187af1305a5ddc42f7e41740795f825e0c708f63f5d1f29b954625c09c",
+      "sha256": "647e31187af1305a5ddc42f7e41740795f825e0c708f63f5d1f29b954625c09c"
+    },
+    "third_party/wb_runner/configs/harnesses/codex-harness/_defaults.yaml": {
+      "upstreamSha256": "5dddd5c358eff75ca69f7277ae6ccd58a2e208e19d722b862f04062a3718479e",
+      "sha256": "5dddd5c358eff75ca69f7277ae6ccd58a2e208e19d722b862f04062a3718479e"
+    },
+    "third_party/wb_runner/configs/harnesses/codex-harness/versions/0.144.6.yaml": {
+      "upstreamSha256": "f6ebdc457786c3869ceb8a11ee0c4a63db53a080961075c15edff2a7640293bf",
+      "sha256": "f6ebdc457786c3869ceb8a11ee0c4a63db53a080961075c15edff2a7640293bf"
+    },
+    "third_party/wb_runner/configs/harnesses/oc-harness/_defaults.yaml": {
+      "upstreamSha256": "418843868dc1b01431b339791ae63bb23c88cad3238bf9ab844fbefae8acd71e",
+      "sha256": "418843868dc1b01431b339791ae63bb23c88cad3238bf9ab844fbefae8acd71e"
+    },
+    "third_party/wb_runner/configs/harnesses/oc-harness/versions/1.14.18.yaml": {
+      "upstreamSha256": "fd0515a9d539c011501984b1017f90410cef79045e172c20a9598596f39106a6",
+      "sha256": "fd0515a9d539c011501984b1017f90410cef79045e172c20a9598596f39106a6"
+    },
+    "third_party/wb_runner/configs/harnesses/opencode/CONFIG.md": {
+      "upstreamSha256": "46bd222f3685c9ae64418a55f08369dfa67702d28e7b50add54369cc3583d410",
+      "sha256": "46bd222f3685c9ae64418a55f08369dfa67702d28e7b50add54369cc3583d410"
+    },
+    "third_party/wb_runner/configs/harnesses/opencode/_defaults.yaml": {
+      "upstreamSha256": "0ff808c61e7d0a0f4709d86fe6ed0457cb47a1401e754a18500eaf162c03fe84",
+      "sha256": "0ff808c61e7d0a0f4709d86fe6ed0457cb47a1401e754a18500eaf162c03fe84"
+    },
+    "third_party/wb_runner/configs/harnesses/opencode/docker/Dockerfile": {
+      "upstreamSha256": "407a631ad135c6960bc319ade205efc37175999c349466b8d82e9a2aedff7266",
+      "sha256": "407a631ad135c6960bc319ade205efc37175999c349466b8d82e9a2aedff7266"
+    },
+    "third_party/wb_runner/configs/harnesses/opencode/presets/settings/v1_14.json": {
+      "upstreamSha256": "1cc19b36f9aa7a8b6a9bf84d63fed256b9e807ecc163c49c52add1c06e6bdc7b",
+      "sha256": "1cc19b36f9aa7a8b6a9bf84d63fed256b9e807ecc163c49c52add1c06e6bdc7b"
+    },
+    "third_party/wb_runner/configs/harnesses/opencode/versions/1.14.18.yaml": {
+      "upstreamSha256": "54cb6265d12b74098aab5425425b13afba581ac4a2c0cef43ba8ce6d7c1c9767",
+      "sha256": "54cb6265d12b74098aab5425425b13afba581ac4a2c0cef43ba8ce6d7c1c9767"
+    }
+  }
+}

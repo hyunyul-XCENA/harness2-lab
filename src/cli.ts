@@ -11,8 +11,10 @@ import {help} from './commands.js';
 import {chooseSession, TuiApp, type Selection} from './ui/app.js';
 import {PlainApp} from './ui/plain.js';
 import {Screen} from './ui/terminal.js';
+import {runHarness2} from './harness2.js';
 
 async function main(): Promise<void> {
+  if (process.argv[2] === '--harness2') {process.exitCode = await runHarness2(process.argv.slice(3)); return;}
   const {values} = parseArgs({options: {project: {type: 'string', default: process.cwd()}, engine: {type: 'string'}, home: {type: 'string'}, model: {type: 'string'}, resume: {type: 'string'}, 'codex-path': {type: 'string'}, 'claude-path': {type: 'string'}, sessions: {type: 'boolean'}, select: {type: 'boolean'}, plain: {type: 'boolean'}, tui: {type: 'boolean'}, help: {type: 'boolean'}}});
   if (values.help) {console.log(help); return;}
   if (values.plain && values.tui) throw new Error('Choose --plain or --tui');

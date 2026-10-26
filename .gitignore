@@ -2,3 +2,8 @@ node_modules/
 .terminal-runner/
 dist/
 .test-artifacts/
+__pycache__/
+*.pyc
+vendor/harness2/runs/
+vendor/harness2/.env
+vendor/harness2/dependencies/*/
