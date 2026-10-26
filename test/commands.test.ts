@@ -17,4 +17,6 @@ test('runner :: commands stay separate from native slash commands and prompt sub
   for (const native of ['/status', '/permissions', '/help', '/quit']) await assert.rejects(command(native, context), /native Codex\/Claude CLI UI/);
   await assert.rejects(command('::missing', context), /Unknown runner command/);
   assert.equal(calls.length, count);
+  await command('/etc/hosts needs checking', context);
+  assert.deepEqual(calls.at(-1), ['input', '/etc/hosts needs checking', false]);
 });

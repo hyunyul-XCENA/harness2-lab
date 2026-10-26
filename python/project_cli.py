@@ -64,7 +64,7 @@ def parse_commands(values):
 def measure(adapter, run_dir, commands, output, timeout):
     records = []
     output.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="harness2-measure-") as directory:
+    with tempfile.TemporaryDirectory(prefix="harness2-measure-", dir=unlinked(Path(tempfile.gettempdir()))) as directory:
         workspace = Path(directory)
         adapter.materialize_artifact(run_dir, workspace)
         for i, command in enumerate(commands):
@@ -168,6 +168,8 @@ def main(arguments, pin):
         # original library rebuilding and keeps measurements out of a live run.
         if not root.is_dir():
             raise ValueError("Project experiment output is missing; run project init first")
+        if (root / ".runner-project.init").exists() or not (root / "project.json").is_file() or not (root / ".runner-project.json").is_file():
+            raise ValueError("Project experiment initialization is incomplete or this directory is unowned; choose a new --output")
         with unlinked(root / ".runner.lock").open("a+b") as lease:
             _filelock.flock(lease, _filelock.LOCK_EX)
             try:

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -12,8 +13,8 @@ import unittest
 import harness2_runner as host
 from codex_local import CodexCLI, SUPPORTED_VERSION
 from project_adapter import ProjectAdapter
-from project_cli import judge, report, run, summaries
-from project_store import initialize, load, tasks_from
+from project_cli import judge, main as project_main, report, run, summaries
+from project_store import initialize, load, tasks_from, unlinked
 
 FIXTURE = Path(__file__).parent / "fixtures/fake_codex.py"
 
@@ -103,6 +104,12 @@ class ProjectTests(unittest.TestCase):
     def test_snapshot_configuration_and_output_ownership_fail_closed(self):
         with tempfile.TemporaryDirectory() as directory:
             project, root, state, runtime = self.prepare(directory)
+            incomplete = Path(directory) / "incomplete"
+            incomplete.mkdir()
+            (incomplete / ".runner-project.init").write_text("interrupted")
+            with self.assertRaisesRegex(ValueError, "incomplete"):
+                project_main(["check", "--output", str(incomplete)], host.PIN)
+            self.assertFalse((incomplete / ".runner.lock").exists())
             with self.assertRaisesRegex(ValueError, "new or empty"):
                 initialize(root, project, state["tasks"], state["runtime"], [], 1, "both", host.PIN)
             data = json.loads((root / "project.json").read_text())
@@ -157,6 +164,27 @@ class ProjectTests(unittest.TestCase):
                 path.write_text(json.dumps(value))
                 with self.assertRaises(ValueError):
                     tasks_from(path)
+
+    @unittest.skipUnless(os.name == "nt", "Win32 long-path regression")
+    def test_windows_long_output_dependencies_and_artifacts_without_global_settings(self):
+        # An extended temp root also lets TemporaryDirectory clean up long paths
+        # without depending on the host's LongPathsEnabled registry value.
+        with tempfile.TemporaryDirectory(prefix="h2long-", dir=unlinked(Path(tempfile.gettempdir()))) as directory:
+            project, _, original, runtime = self.prepare(directory, n=1)
+            dep = project / "deps" / ("d" * 90)
+            dep.mkdir(parents=True)
+            (dep / ("f" * 90 + ".txt")).write_text("dependency bytes", encoding="utf-8")
+            root = Path(directory) / ("o" * 85) / ("p" * 65)
+            state = initialize(root, project, original["tasks"], original["runtime"], ["deps"], 1, "parallel", host.PIN)
+            self.assertGreater(len(str(root / "dependencies/deps" / dep.name / ("f" * 90 + ".txt"))), 260)
+            self.assertEqual(load(root, host.PIN), state)
+            adapter = ProjectAdapter(root, state, runtime)
+            run_dir = adapter.execute("change-0", None, "project-cx-agg1/change-0/base1")
+            self.assertTrue(adapter.delivered(run_dir))
+            self.assertGreater(len(str(run_dir / "artifact-identity.json")), 260)
+            with tempfile.TemporaryDirectory(prefix="h2restore-", dir=unlinked(Path(tempfile.gettempdir()))) as restored:
+                adapter.materialize_artifact(run_dir, Path(restored))
+                self.assertEqual((Path(restored) / "deps" / dep.name / ("f" * 90 + ".txt")).read_text(), "dependency bytes")
 
 if __name__ == "__main__":
     unittest.main()

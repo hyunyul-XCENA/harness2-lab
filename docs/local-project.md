@@ -42,6 +42,10 @@ npm run harness2 -- project report --output .terminal-runner/harness2/approval-t
 
 ## 저장·재개·편집 범위
 
+Windows 파일 경로는 내부에서 extended-length 형식으로 다뤄 긴 출력·의존성 경로도 복사한다. 전역 LongPathsEnabled 설정은 바꾸지 않는다. 폴더·파일 이름 한 개의 길이 등 파일시스템 자체 한도는 그대로다. JSON이나 출력에 Windows 경로 접두어가 포함될 수 있다.
+
+소스의 `.codex`/`.claude` 폴더는 제외한다. 의존성 사본은 전체 바이트를 보존하므로 `lib/.codex`처럼 의존성 내부에 있는 폴더는 포함할 수 있다. 이 폴더는 workspace root의 native 설정으로 설치하지 않는다.
+
 - `project.json`과 소유권 marker는 과제 순서·domain·모델·effort·timeout·k·mode 및 소스·의존성 hash를 고정한다. 바꾸려면 새 output을 만든다. 같은 이름의 output을 새 프로젝트로 덮어쓰지 않는다.
 - Git에 추적된 현재 파일 내용을 복사한다. 추적된 미커밋 변경도 포함하고, untracked 파일은 포함하지 않는다. 새 파일을 시험하려면 먼저 Git index에 추가한다. credential로 보이는 추적 파일은 준비 단계에서 거절한다.
 - `.git`, `.codex`, `.claude`, 생성물과 앱 상태는 소스에서 제외한다. `--deps` 디렉터리도 모델에 전달하는 task source와 코드 패치에서 제외한다. 필요할 때 각 solver/검사 폴더에 독립 사본으로 복사하며, solver가 의존성을 수정하면 실패한다. 의존성 복사는 디스크 공간을 사용한다.

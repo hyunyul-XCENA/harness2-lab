@@ -48,6 +48,6 @@ export async function command(input: string, context: Commands): Promise<void> {
   } else if (name === '::history') note(manager.history().map(value => `${value.status} ${value.requestId}\n${value.text}\n${value.nativeTurnId ?? ''}`).join('\n\n') || 'No inputs yet.');
   else if (name === '::ack-unknown') {manager.acknowledgeUnknown(); note('Acknowledged. Previous input was not resent.');}
   else if (name.startsWith('::')) throw new Error('Unknown runner command; use ::help');
-  else if (name.startsWith('/')) throw new Error('Native / commands require the native Codex/Claude CLI UI. This SDK/App Server chat cannot execute them. Runner commands use ::help.');
+  else if (name === '/' || /^\/[A-Za-z0-9_-][A-Za-z0-9_:-]*$/.test(name)) throw new Error('Native / commands require the native Codex/Claude CLI UI. This SDK/App Server chat cannot execute them. Runner commands use ::help.');
   else submit();
 }

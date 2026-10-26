@@ -29,12 +29,21 @@ def relative(name: str) -> str:
 
 def unlinked(path: Path) -> Path:
     path = path.expanduser().absolute()
+    # Use the Win32 extended-length form locally instead of requiring a machine
+    # registry change. Keep it from the root down so scans, reads and writes all
+    # refer to the same paths, including deep dependency and artifact trees.
+    if os.name == "nt":
+        value = str(path)
+        if not value.startswith("\\\\?\\"):
+            value = "\\\\?\\UNC\\" + value[2:] if value.startswith("\\\\") else "\\\\?\\" + value
+            path = Path(value)
     for p in [path, *path.parents]:
         if p.is_symlink() or p.is_junction():
             raise ValueError(f"Linked path is not supported: {p}")
     return path
 
 def files(root: Path, *, ignore: set[str] | None = None) -> dict[str, Path]:
+    root = unlinked(root)
     out = {}
     for directory, dirs, names in os.walk(root, followlinks=False):
         parent = Path(directory)
@@ -58,6 +67,7 @@ def check_inventory(root: Path, expected: dict) -> None:
         raise ValueError(f"Snapshot changed or contains unexpected files: {root}")
 
 def copy_files(source: Path, dest: Path, names: list[str] | None = None) -> None:
+    source, dest = unlinked(source), unlinked(dest)
     selected = files(source) if names is None else {relative(n): unlinked(source / n) for n in names}
     for name, file in selected.items():
         target = dest / name

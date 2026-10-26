@@ -21,6 +21,7 @@ Do not read external project or experiment directories.
 
 class ProjectAdapter:
     def __init__(self, root: Path, state: dict, runtime: CodexCLI):
+        root = unlinked(root)
         self.root, self.state, self.runtime = root, state, runtime
         self.substrate = CodexSubstrate()
         channel = CodexChannel(runtime.model, runtime.effort, runtime.timeout)
@@ -84,7 +85,7 @@ class ProjectAdapter:
         run_dir.mkdir(parents=True)
         harness = tree.read_tree(self.substrate.surface(), harness_dir or self.base_harness())
         self.validate_tree(harness)
-        with tempfile.TemporaryDirectory(prefix="harness2-project-") as directory:
+        with tempfile.TemporaryDirectory(prefix="harness2-project-", dir=unlinked(Path(tempfile.gettempdir()))) as directory:
             workspace = Path(directory)
             copy_files(self.root / "source", workspace)
             copy_dependencies(self.root, workspace, self.state)
