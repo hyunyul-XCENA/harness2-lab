@@ -36,10 +36,15 @@ export class SessionManager extends EventEmitter {
     if (receipt.status === 'unknown') this.uncertain = true;
     if (receipt.status === 'completed' && ![...this.receipts.values()].some(value => value.status === 'unknown')) this.uncertain = false;
   }
+  private async saveCheckpoint(): Promise<void> {
+    const checkpoint = await this.adapter.checkpoint(this.live!);
+    this.store.append(this.live!.appSessionId, 'checkpoint', checkpoint);
+    this.emit('checkpoint', checkpoint);
+  }
   async start(spec: SessionSpec): Promise<void> {
     this.live = await this.adapter.start(spec);
     if (this.closing) {await this.adapter.close(this.live); throw new Error('Session closed during startup');}
-    this.store.append(spec.appSessionId, 'checkpoint', await this.adapter.checkpoint(this.live));
+    await this.saveCheckpoint();
     this.transition('idle'); this.listen();
   }
   async resume(sessionId: string, expectedCwd: string): Promise<void> {
@@ -53,7 +58,7 @@ export class SessionManager extends EventEmitter {
     for (const receipt of await this.adapter.reconcile(this.live, unknown.map(input => ({requestId: input.requestId, status: 'unknown', nativeTurnId: input.nativeTurnId})))) this.saveReceipt(receipt);
     // Queued inputs were never sent; show them in history, do not run on resume.
     for (const input of previous.filter(input => input.status === 'queued')) this.saveReceipt({requestId: input.requestId, status: 'rejected', evidence: 'Unsent input cancelled on resume'});
-    this.store.append(sessionId, 'checkpoint', await this.adapter.checkpoint(this.live));
+    await this.saveCheckpoint();
     this.transition('idle'); this.listen();
   }
   private listen(): void {
@@ -70,7 +75,7 @@ export class SessionManager extends EventEmitter {
           if (payload.type === 'request.resolved') {this.pending.delete(payload.requestId); if (this.activeTurn && !this.pending.size) this.transition('running');}
           if (payload.type === 'turn.completed') {
             if (this.activeTurn === payload.nativeTurnId) this.activeTurn = undefined;
-            this.store.append(live.appSessionId, 'checkpoint', await this.adapter.checkpoint(live));
+            await this.saveCheckpoint();
             if (this.state !== 'failed') {this.transition('idle'); void this.flush();}
           }
           if (payload.type === 'transport.disconnected') {this.uncertain ||= payload.uncertainRequestIds.length > 0; this.activeTurn = undefined; this.pending.clear(); this.transition('failed');}

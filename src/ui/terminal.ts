@@ -136,13 +136,17 @@ export class Screen {
   private timer?: ReturnType<typeof setTimeout>;
   private onData = (data: Buffer | string) => this.decoder.push(data);
   private onResize = () => this.invalidate();
-  constructor(readonly input: TerminalInput, readonly output: TerminalOutput, onKey: (key: Key) => void, private draw: () => {lines: string[]; cursor?: {row: number; column: number}}) {
-    this.decoder = new KeyDecoder(onKey); this.raw = !!input.isRaw; this.paused = input.readableFlowing !== true;
+  constructor(readonly input: TerminalInput, readonly output: TerminalOutput, private onKey: (key: Key) => void, private draw: () => {lines: string[]; cursor?: {row: number; column: number}}) {
+    this.decoder = new KeyDecoder(key => this.onKey(key)); this.raw = !!input.isRaw; this.paused = input.readableFlowing !== true;
     input.setRawMode(true); input.on('data', this.onData); input.resume(); output.on('resize', this.onResize);
     output.write('\x1b[?1049h\x1b[?25l\x1b[?2004h'); this.invalidate();
   }
   get columns(): number {return Math.max(1, (this.output.columns || 80) - 1);}
   get rows(): number {return Math.max(1, this.output.rows || 24);}
+  /** Change views without reopening Windows ReadConsole or dropping its next read. */
+  setView(onKey: (key: Key) => void, draw: () => {lines: string[]; cursor?: {row: number; column: number}}): void {
+    this.onKey = onKey; this.draw = draw; this.invalidate();
+  }
   invalidate(): void {
     if (this.closed || this.timer) return;
     this.timer = setTimeout(() => {this.timer = undefined; this.paint();}, 33);

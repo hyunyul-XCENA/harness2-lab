@@ -1,4 +1,4 @@
-import type {AgentEvent, Engine, InputMessage, PendingRequest, RequestAnswer, SubmissionReceipt} from '../../contracts/agent.js';
+import type {AgentEvent, Engine, InputMessage, PendingRequest, RequestAnswer, SessionCheckpoint, SubmissionReceipt} from '../../contracts/agent.js';
 import type {SessionManager} from '../session.js';
 import type {StateStore} from '../storage.js';
 import {command} from '../commands.js';
@@ -7,7 +7,7 @@ import {ViewModel} from './model.js';
 import {clip, Editor, Screen, wrap, type Key, type TerminalInput, type TerminalOutput} from './terminal.js';
 
 export type Selection = {engine: Engine; resume?: string};
-export function chooseSession(store: StateStore, project: string, input: TerminalInput, output: TerminalOutput, preferred: Engine = 'codex'): Promise<Selection | undefined> {
+export function chooseSession(store: StateStore, project: string, input: TerminalInput, output: TerminalOutput, preferred: Engine = 'codex', shared?: Screen): Promise<Selection | undefined> {
   const choices: {label: string; detail: string; selection: Selection}[] = ['codex', 'claude'].map(engine => ({label: `New ${engine} conversation`, detail: 'Uses current project settings and harness.', selection: {engine: engine as Engine}}));
   for (const row of store.list()) {
     const saved = store.checkpoint(row.id);
@@ -15,23 +15,26 @@ export function chooseSession(store: StateStore, project: string, input: Termina
   }
   return new Promise(resolve => {
     let index = preferred === 'claude' ? 1 : 0, closed = false;
-    const finish = (choice?: Selection) => {if (closed) return; closed = true; process.removeListener('SIGTERM', cancel); process.removeListener('SIGINT', cancel); input.removeListener('end', cancel); screen.close(); resolve(choice);};
+    const finish = (choice?: Selection) => {if (closed) return; closed = true; process.removeListener('SIGTERM', cancel); process.removeListener('SIGINT', cancel); input.removeListener('end', cancel); if (shared) screen.setView(() => {}, () => ({lines: ['Opening conversation…']})); else screen.close(); resolve(choice);};
     const cancel = () => finish();
-    const screen = new Screen(input, output, key => {
+    const onKey = (key: Key) => {
       if (['escape', 'interrupt', 'eof'].includes(key.name)) finish();
       else if (screen.rows < 12 || screen.columns < 45) return;
       else if (key.name === 'up') index = Math.max(0, index - 1);
       else if (key.name === 'down') index = Math.min(choices.length - 1, index + 1);
       else if (key.name === 'enter') finish(choices[index]!.selection);
       screen.invalidate();
-    }, () => {
+    };
+    const draw = (): {lines: string[]} => {
       const columns = screen.columns, rows = screen.rows;
       if (rows < 12 || columns < 45) return {lines: ['Terminal Runner: enlarge terminal to 46 x 12.', 'Esc / Ctrl+C: quit']};
       const available = Math.max(1, rows - 10), offset = Math.max(0, Math.min(index - Math.floor(available / 2), choices.length - available));
       const list = choices.slice(offset, offset + available).map((value, i) => `${offset + i === index ? '>' : ' '} ${value.label}`);
       while (list.length < available) list.push('');
       return {lines: ['TERMINAL RUNNER 0.3 | new / resume', clip(project, columns), '─'.repeat(columns), ...list, '─'.repeat(columns), ...choices[index]!.detail.split('\n').slice(0, 3), '', '↑/↓ choose  Enter open  Esc quit']};
-    });
+    };
+    const screen = shared ?? new Screen(input, output, onKey, draw);
+    if (shared) screen.setView(onKey, draw);
     process.once('SIGTERM', cancel); process.once('SIGINT', cancel); input.once('end', cancel);
   });
 }
@@ -42,6 +45,7 @@ export class TuiApp {
   readonly model = new ViewModel();
   readonly editor = new Editor();
   readonly screen: Screen;
+  private ownsScreen: boolean;
   closeError?: unknown;
   private scroll = 0;
   private review?: Review;
@@ -58,19 +62,22 @@ export class TuiApp {
   };
   private onInput = (input: InputMessage) => {this.model.input(input); this.scroll = 0; this.screen.invalidate();};
   private onReceipt = (receipt: SubmissionReceipt) => {this.model.receipt(receipt); this.screen.invalidate();};
+  private onCheckpoint = (checkpoint: SessionCheckpoint) => {this.model.checkpoint = checkpoint; this.screen.invalidate();};
   private onFailure = (message: string) => {this.model.state = 'failed'; this.model.pending.clear(); this.review = undefined; this.note(`[failed] ${message}`);};
   private signal = () => {void this.interruptOrQuit();};
   private terminate = () => {void this.finish('quit');};
   private tick: ReturnType<typeof setInterval>;
-  constructor(readonly manager: SessionManager, project: string, engine: Engine, input: TerminalInput, output: TerminalOutput, resume?: string) {
+  constructor(readonly manager: SessionManager, project: string, engine: Engine, input: TerminalInput, output: TerminalOutput, resume?: string, shared?: Screen) {
     if (resume) {
       this.model.replay(manager.store.entries(resume));
       // Recovery can change index statuses without rewriting old journal receipts.
       for (const value of manager.store.inputs(resume)) this.model.receipt(value);
       this.model.note(`Restored local transcript for ${resume}. Old requests are closed.`);
     }
-    this.screen = new Screen(input, output, key => this.key(key), () => this.frame(project, engine));
-    manager.on('event', this.onEvent); manager.on('input', this.onInput); manager.on('receipt', this.onReceipt); manager.on('failure', this.onFailure);
+    this.ownsScreen = !shared;
+    this.screen = shared ?? new Screen(input, output, key => this.key(key), () => this.frame(project, engine));
+    if (shared) shared.setView(key => this.key(key), () => this.frame(project, engine));
+    manager.on('event', this.onEvent); manager.on('input', this.onInput); manager.on('receipt', this.onReceipt); manager.on('checkpoint', this.onCheckpoint); manager.on('failure', this.onFailure);
     process.on('SIGINT', this.signal); process.once('SIGTERM', this.terminate); input.once('end', this.terminate);
     this.tick = setInterval(() => {if (this.model.pending.size) this.screen.invalidate();}, 1000);
   }
@@ -92,7 +99,7 @@ export class TuiApp {
     if (this.screen.rows < 12 || this.screen.columns < 45) return;
     if (key.name === 'pageup' || key.name === 'pagedown') {
       const delta = Math.max(1, this.screen.rows - 8) * (key.name === 'pageup' ? 1 : -1);
-      if (this.review) this.reviewScroll = Math.max(0, this.reviewScroll + delta); else this.scroll = Math.max(0, this.scroll + delta);
+      if (this.review) this.reviewScroll = Math.max(0, this.reviewScroll - delta); else this.scroll = Math.max(0, this.scroll + delta);
     } else if (key.name === 'f2' && !this.busy) {
       if (this.review) this.review = undefined;
       else {
@@ -179,8 +186,9 @@ export class TuiApp {
     finally {this.dispose(); this.done(action);}
   }
   dispose(): void {
-    clearInterval(this.tick); this.screen.close();
-    this.manager.removeListener('event', this.onEvent); this.manager.removeListener('input', this.onInput); this.manager.removeListener('receipt', this.onReceipt); this.manager.removeListener('failure', this.onFailure);
+    clearInterval(this.tick);
+    if (this.ownsScreen) this.screen.close(); else this.screen.setView(() => {}, () => ({lines: ['Closing conversation…']}));
+    this.manager.removeListener('event', this.onEvent); this.manager.removeListener('input', this.onInput); this.manager.removeListener('receipt', this.onReceipt); this.manager.removeListener('checkpoint', this.onCheckpoint); this.manager.removeListener('failure', this.onFailure);
     process.removeListener('SIGINT', this.signal); process.removeListener('SIGTERM', this.terminate); this.screen.input.removeListener('end', this.terminate);
   }
 }

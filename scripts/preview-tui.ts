@@ -10,24 +10,26 @@ import {SessionManager} from '../src/session.js';
 import {chooseSession, TuiApp} from '../src/ui/app.js';
 import {id} from '../src/util.js';
 import {FakeClaudeSdk} from '../test/fake-claude-sdk.js';
+import {Screen} from '../src/ui/terminal.js';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const base = path.join(root, '.test-artifacts', `tui-preview-${id()}`), project = path.join(base, '한글 project'), home = path.join(base, 'home');
 fs.mkdirSync(project, {recursive: true}); initializeHome(home);
 const store = new StateStore(path.join(project, '.terminal-runner')); store.acquire();
 const provider = new FakeClaudeSdk();
+const surface = new Screen(process.stdin, process.stdout, () => {}, () => ({lines: ['Opening offline preview…']}));
 try {
-  let selection = await chooseSession(store, `OFFLINE PREVIEW | ${project}`, process.stdin, process.stdout);
+  let selection = await chooseSession(store, `OFFLINE PREVIEW | ${project}`, process.stdin, process.stdout, 'codex', surface);
   while (selection) {
     const loaded = loadConfig(project, home, {runtime: {engine: selection.engine}});
     const adapter = selection.engine === 'claude' ? new ClaudeAdapter({timeoutMs: 1000}, provider) : new CodexAdapter({command: process.execPath, prefixArgs: [path.join(root, 'test/fixtures/fake-codex.mjs')], timeoutMs: 1000});
-    const manager = new SessionManager(adapter, store), app = new TuiApp(manager, project, selection.engine, process.stdin, process.stdout, selection.resume);
+    const manager = new SessionManager(adapter, store), app = new TuiApp(manager, project, selection.engine, process.stdin, process.stdout, selection.resume, surface);
     try {
       if (selection.resume) await manager.resume(selection.resume, project); else await manager.start(createSpec(loaded.config, compileHarness(loaded.config, home), id()));
       app.ready(); app.note('OFFLINE FIXTURE. Try: remember token / recall / long / approval / question. No model calls.');
       const action = await app.finished; if (app.closeError) throw app.closeError;
-      selection = action === 'select' ? await chooseSession(store, project, process.stdin, process.stdout) : undefined;
+      selection = action === 'select' ? await chooseSession(store, project, process.stdin, process.stdout, 'codex', surface) : undefined;
     } finally {await manager.close(); app.dispose();}
   }
   fs.writeFileSync(path.join(base, 'result.json'), JSON.stringify({project, sessions: store.list(), inputs: store.list().map(row => ({id: row.id, inputs: store.inputs(row.id)}))}, null, 2));
-} finally {store.close();}
+} finally {surface.close(); store.close();}
 console.log(`Preview state: ${base}`);

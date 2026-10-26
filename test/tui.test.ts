@@ -19,7 +19,8 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 class Input extends PassThrough {
   isTTY = true;
   isRaw = false;
-  setRawMode(value: boolean): this {this.isRaw = value; return this;}
+  modes: boolean[] = [];
+  setRawMode(value: boolean): this {this.modes.push(value); this.isRaw = value; return this;}
 }
 class Output extends PassThrough {
   isTTY = true;
@@ -82,6 +83,7 @@ test('TUI preserves draft during streaming, queues one input, and restores trans
   try {
     await s.manager.start(s.spec); s.app.ready();
     s.input.write('remember 연속대화🙂\r'); await until(() => s.manager.history()[0]?.status === 'completed');
+    await until(() => s.app.model.checkpoint?.resolvedModel === 'fixture-model');
     s.input.write('long\r'); await until(() => !!s.manager.activeTurn);
     s.input.write('recall\r'); await until(() => s.manager.history().at(-1)?.status === 'queued');
     s.input.write('아직 안 보낼 초안');
@@ -128,6 +130,18 @@ test('TUI question choices and free text map to native question keys; composer d
   } finally {await s.app.finish('quit'); s.store.close();}
 });
 
+test('approval PgDn advances through long proposed input and PgUp returns to the request heading', async () => {
+  const s = setup();
+  try {
+    await s.manager.start(s.spec); s.app.ready(); await s.manager.input('long'); await until(() => !!s.manager.activeTurn);
+    const decision = s.provider.options[0]!.canUseTool!('Write', {file_path: 'large.txt', content: Array.from({length: 200}, (_, i) => `proposed-line-${i}`).join('\n')}, {signal: new AbortController().signal, toolUseID: id(), requestId: id()});
+    await until(() => s.manager.pending.size === 1); s.input.write('\x1bOQ'); s.app.screen.paint(); assert.match(s.output.frames.at(-1)!, /REVIEW approval/);
+    s.input.write('\x1b[6~'); s.app.screen.paint(); assert.ok(!s.output.frames.at(-1)!.includes('REVIEW approval'));
+    s.input.write('\x1b[5~'); s.app.screen.paint(); assert.match(s.output.frames.at(-1)!, /REVIEW approval/);
+    s.input.write('\r'); assert.equal((await decision)?.behavior, 'deny');
+  } finally {await s.app.finish('quit'); s.store.close();}
+});
+
 test('session chooser returns the stored engine and session; cancelling releases terminal listeners', async () => {
   const s = setup();
   try {
@@ -136,6 +150,26 @@ test('session chooser returns the stored engine and session; cancelling releases
     t.input.write('\x1b[B\x1b[B\r'); assert.deepEqual(await choice, {engine: 'claude', resume: s.spec.appSessionId}); assert.equal(t.input.isRaw, false);
     const cancel = chooseSession(s.store, s.project, t.stdin, t.stdout, 'claude'); t.input.write('\x03'); assert.equal(await cancel, undefined); assert.equal(t.input.listenerCount('data'), 0);
   } finally {await s.app.finish('quit'); s.store.close();}
+});
+
+test('one raw input lifetime spans picker and resumed conversation; first input after each switch is kept', async () => {
+  const s = setup();
+  const t = terminal(), surface = new Screen(t.stdin, t.stdout, () => {}, () => ({lines: []}));
+  try {
+    await s.manager.start(s.spec); await s.app.finish('quit');
+    for (let round = 0; round < 2; round++) {
+      const choice = chooseSession(s.store, s.project, t.stdin, t.stdout, 'codex', surface);
+      t.input.write('\x1b[B\x1b[B\r'); const selection = await choice; assert.equal(selection?.resume, s.spec.appSessionId);
+      const manager = new SessionManager(s.adapter(), s.store), app = new TuiApp(manager, s.project, 'claude', t.stdin, t.stdout, selection!.resume, surface);
+      try {
+        await manager.resume(s.spec.appSessionId, s.project); app.ready();
+        t.input.write(`first-after-switch-${round}\r`); await until(() => manager.history().length === round + 1 && manager.history().at(-1)?.status === 'completed');
+        assert.equal(manager.history().at(-1)?.text, `first-after-switch-${round}`);
+      } finally {await app.finish('select');}
+      assert.deepEqual(t.input.modes, [true]); assert.equal(t.input.listenerCount('data'), 1);
+    }
+  } finally {surface.close(); await s.app.finish('quit'); s.store.close();}
+  assert.deepEqual(t.input.modes, [true, false]);
 });
 
 test('closing during native startup closes the late live session; repeated close shares completion', async () => {

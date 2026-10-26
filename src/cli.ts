@@ -10,6 +10,7 @@ import {errorText, id} from './util.js';
 import {help} from './commands.js';
 import {chooseSession, TuiApp, type Selection} from './ui/app.js';
 import {PlainApp} from './ui/plain.js';
+import {Screen} from './ui/terminal.js';
 
 async function main(): Promise<void> {
   const {values} = parseArgs({options: {project: {type: 'string', default: process.cwd()}, engine: {type: 'string'}, home: {type: 'string'}, model: {type: 'string'}, resume: {type: 'string'}, 'codex-path': {type: 'string'}, 'claude-path': {type: 'string'}, sessions: {type: 'boolean'}, select: {type: 'boolean'}, plain: {type: 'boolean'}, tui: {type: 'boolean'}, help: {type: 'boolean'}}});
@@ -27,11 +28,13 @@ async function main(): Promise<void> {
   const store = new StateStore(initial.stateDirectory);
   let manager: SessionManager | undefined;
   let app: TuiApp | PlainApp | undefined;
+  let surface: Screen | undefined;
   try {
     if (values.sessions) {console.table(store.list()); return;}
     store.acquire(); initializeHome(initial.home);
+    if (tui) surface = new Screen(process.stdin, process.stdout, () => {}, () => ({lines: ['Opening…']}));
     let selection: Selection | undefined;
-    if (values.select || (tui && !values.engine && !values.resume && !values.model)) selection = await chooseSession(store, project, process.stdin, process.stdout, initial.config.runtime.engine);
+    if (values.select || (tui && !values.engine && !values.resume && !values.model)) selection = await chooseSession(store, project, process.stdin, process.stdout, initial.config.runtime.engine, surface);
     else selection = {engine: values.resume ? store.checkpoint(values.resume).runtime.engine : initial.config.runtime.engine, ...(values.resume ? {resume: values.resume} : {})};
     if (values.resume && values.engine && selection?.engine !== values.engine) throw new Error('Resume pins the saved engine; start a new session to switch engines');
     if (values.resume && values.model) throw new Error('Resume pins the saved model; start a new session to change it');
@@ -41,18 +44,18 @@ async function main(): Promise<void> {
       first = false;
       const adapter = selection.engine === 'claude' ? new ClaudeAdapter({command: values['claude-path'], timeoutMs: loaded.config.runtime.startupTimeoutMs}) : new CodexAdapter({command: values['codex-path'], timeoutMs: loaded.config.runtime.startupTimeoutMs});
       manager = new SessionManager(adapter, store);
-      app = tui ? new TuiApp(manager, project, selection.engine, process.stdin, process.stdout, selection.resume) : new PlainApp(manager);
+      app = tui ? new TuiApp(manager, project, selection.engine, process.stdin, process.stdout, selection.resume, surface) : new PlainApp(manager);
       if (selection.resume) await manager.resume(selection.resume, project);
       else await manager.start(createSpec(loaded.config, compileHarness(loaded.config, loaded.home), id()));
       app.ready();
       const action = await app.finished;
       if (app.closeError) throw app.closeError;
       await manager.close(); app.dispose(); app = undefined; manager = undefined;
-      selection = action === 'select' ? await chooseSession(store, project, process.stdin, process.stdout, initial.config.runtime.engine) : undefined;
+      selection = action === 'select' ? await chooseSession(store, project, process.stdin, process.stdout, initial.config.runtime.engine, surface) : undefined;
     }
   } finally {
     // Always restore terminal modes even when startup/version validation fails.
-    try {await manager?.close();} finally {app?.dispose(); store.close();}
+    try {await manager?.close();} finally {app?.dispose(); surface?.close(); store.close();}
   }
 }
 main().catch(error => {console.error(errorText(error)); process.exitCode = 1;});
