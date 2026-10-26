@@ -4,6 +4,7 @@ from __future__ import annotations
 import difflib
 import json
 from pathlib import Path
+import re
 import tempfile
 import threading
 
@@ -72,12 +73,34 @@ class ProjectAdapter:
             if any(name == d or name.startswith(d + "/") for d in self.state["dependencies"]):
                 raise ValueError(f"Harness cannot overwrite a dependency: {name}")
 
+    def completed_execution(self, task_id, harness_dir, run_id):
+        canonical = unlinked(self.root / "executions" / relative(run_id))
+        candidates = [canonical]
+        if canonical.parent.is_dir():
+            pattern = re.compile(re.escape(canonical.name) + r"\.retry-[0-9a-f]{32}")
+            candidates.extend(sorted(p for p in canonical.parent.iterdir() if pattern.fullmatch(p.name)))
+        for candidate in candidates:
+            candidate = unlinked(candidate)
+            if not candidate.is_dir():
+                continue
+            unlinked(candidate / runmark.MARK)
+            if not runmark.is_complete(candidate, harness_dir=harness_dir):
+                continue
+            record_path = unlinked(candidate / "artifact-identity.json")
+            if not self.artifacts_intact(candidate):
+                raise ValueError(f"Execution artifacts changed: {candidate}")
+            record = json.loads(record_path.read_text(encoding="utf-8"))
+            if runmark.read_mark(candidate).get("run_id") != run_id or record.get("run_id") != run_id or record.get("task_id") != task_id:
+                raise ValueError(f"Execution identity changed: {candidate}")
+            return candidate
+        return None
+
     def execute(self, task_id, harness_dir, run_id, *, timeout=None):
+        completed = self.completed_execution(task_id, harness_dir, run_id)
+        if completed is not None:
+            print(f"  [solver] {run_id}: reused {completed.name}", flush=True)
+            return completed
         run_dir = unlinked(self.root / "executions" / relative(run_id))
-        if runmark.is_complete(run_dir, harness_dir=harness_dir):
-            if not self.artifacts_intact(run_dir):
-                raise ValueError(f"Execution artifacts changed: {run_dir}")
-            return run_dir
         if run_dir.exists() and any(run_dir.iterdir()):
             # Preserve failed/partial attempts; a fresh directory holds each retry.
             import uuid

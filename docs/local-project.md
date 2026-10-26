@@ -31,6 +31,8 @@ npm run harness2 -- project run --output .terminal-runner/harness2/approval-time
 npm run harness2 -- project run --output .terminal-runner/harness2/approval-timeout
 ```
 
+실패·중단된 실행 폴더는 보존하고, 다음 시도는 `.retry-<id>` 폴더에 저장한다. 재개할 때는 기본 폴더 다음으로 ID순으로 재시도 폴더를 살펴보고, 같은 task·run ID와 harness로 완료된 첫 결과를 재사용한다. 완료 표식이나 산출물 검증을 통과하지 못한 결과는 재사용하지 않는다. 완료된 결과의 파일 또는 실행 ID가 바뀌었다면 새 모델을 부르지 않고 오류로 중단한다.
+
 선택된 코드 변경은 화면에 표시된 `changes.patch`, 전체 변경 파일은 해당 실행의 `artifact/files/`, 삭제 목록은 `artifact/changes.json`에 남는다. `source/`는 준비 시점의 스냅샷이다. 실험 실행은 사용자 작업 폴더에 패치를 적용하지 않는다. 텍스트 diff와 바이너리 파일을 함께 보존하지만 패치 자동 적용 명령은 아직 제공하지 않는다.
 
 ## 선택 후 외부 검사

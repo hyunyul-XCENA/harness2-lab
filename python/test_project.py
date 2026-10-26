@@ -97,6 +97,68 @@ class ProjectTests(unittest.TestCase):
                     self.assertFalse(choice["chosen_is_base"])
                     self.assertTrue(all(label.startswith("agg" if mode == "agg" else "c") for label in choice["id_map"].values()))
 
+    def test_completed_retry_resumes_without_model_calls_and_preserves_failures(self):
+        for edited in [False, True]:
+            with self.subTest(edited=edited), tempfile.TemporaryDirectory() as directory:
+                _, root, state, runtime = self.prepare(directory, n=1)
+                adapter = ProjectAdapter(root, state, runtime)
+                harness = None
+                if edited:
+                    harness = root / "edited-harness"
+                    harness.mkdir()
+                    (harness / "AGENTS.md").write_text(adapter.base["AGENTS.md"] + "\nInspect failures before editing.\n", encoding="utf-8")
+                run_id = "project-cx-agg1/change-0/base1"
+                failed = CodexCLI([sys.executable, str(FIXTURE)], "fixture-failure", "medium", 10)
+                with self.assertRaisesRegex(RuntimeError, "did not complete"):
+                    ProjectAdapter(root, state, failed).execute("change-0", harness, run_id)
+                canonical = root / "executions" / run_id
+                failed_events = (canonical / "events.jsonl").read_bytes()
+                completed = adapter.execute("change-0", harness, run_id)
+                self.assertTrue(completed.name.startswith("base1.retry-"))
+                partial = canonical.with_name(canonical.name + ".retry-" + "f" * 32)
+                partial.mkdir(exist_ok=True)
+                (partial / "events.jsonl").write_text("partial", encoding="utf-8")
+                resumed = ProjectAdapter(root, state, runtime)
+                with patch.object(runtime, "invoke", side_effect=AssertionError("completed retry must not call a model")):
+                    self.assertEqual(resumed.execute("change-0", harness, run_id), completed)
+                self.assertEqual(resumed.execution_count, 0)
+                self.assertEqual((canonical / "events.jsonl").read_bytes(), failed_events)
+                self.assertEqual((partial / "events.jsonl").read_text(), "partial")
+                identity = completed / "artifact-identity.json"
+                original = identity.read_text(encoding="utf-8")
+                for field in ["task_id", "run_id"]:
+                    record = json.loads(original)
+                    record[field] = "another-execution"
+                    identity.write_text(json.dumps(record), encoding="utf-8")
+                    with patch.object(runtime, "invoke", side_effect=AssertionError("invalid identity must fail before model calls")), self.assertRaisesRegex(ValueError, "identity changed"):
+                        resumed.execute("change-0", harness, run_id)
+                identity.write_text(original, encoding="utf-8")
+                (completed / "changes.patch").write_text("tampered", encoding="utf-8")
+                with patch.object(runtime, "invoke", side_effect=AssertionError("tampered retry must fail before model calls")), self.assertRaisesRegex(ValueError, "artifacts changed"):
+                    resumed.execute("change-0", harness, run_id)
+
+    def test_completed_retry_from_different_harness_is_not_reused(self):
+        with tempfile.TemporaryDirectory() as directory:
+            _, root, state, runtime = self.prepare(directory, n=1)
+            adapter = ProjectAdapter(root, state, runtime)
+            harness = root / "edited-harness"
+            harness.mkdir()
+            instructions = harness / "AGENTS.md"
+            instructions.write_text(adapter.base["AGENTS.md"], encoding="utf-8")
+            run_id = "project-cx-agg1/change-0/probe1"
+            canonical = root / "executions" / run_id
+            canonical.mkdir(parents=True)
+            (canonical / "events.jsonl").write_text("interrupted", encoding="utf-8")
+            first = adapter.execute("change-0", harness, run_id)
+            instructions.write_text(adapter.base["AGENTS.md"] + "\nInspect failures before editing.\n", encoding="utf-8")
+            second = adapter.execute("change-0", harness, run_id)
+            self.assertNotEqual(first, second)
+            self.assertEqual(adapter.execution_count, 2)
+            self.assertTrue(adapter.delivered(first))
+            self.assertTrue(adapter.delivered(second))
+            with patch.object(runtime, "invoke", side_effect=AssertionError("matching retry must be reused")):
+                self.assertEqual(adapter.execute("change-0", harness, run_id), second)
+
     def test_sequential_only_summary_and_external_comparison(self):
         with tempfile.TemporaryDirectory() as directory:
             _, root, state, runtime = self.prepare(directory, mode="sequential", n=1)
