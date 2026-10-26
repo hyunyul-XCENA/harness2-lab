@@ -1,4 +1,4 @@
-"""Reproduce the pinned upstream source mirror and its Windows lock-only patch."""
+"""Reproduce the pinned upstream source mirror and its Windows portability patches."""
 from __future__ import annotations
 
 import argparse
@@ -51,7 +51,7 @@ def main() -> None:
     files["harness2/core/tree.py"] = tree.replace("        rel = str(p.relative_to(d))\n", "        rel = p.relative_to(d).as_posix()\n").replace("        rel = str(p.relative_to(dest))\n", "        rel = p.relative_to(dest).as_posix()\n").encode("utf-8")
     files["harness2/core/tree.py"] = files["harness2/core/tree.py"].replace(b'"""The c1..c8', b'# Local portability patch: canonical POSIX path keys on Windows.\n# Editable-surface policy remains upstream; see PROVENANCE.json.\n\n"""The c1..c8', 1)
     # This small compatibility file is kept as first-party source beside this script.
-    files["harness2/core/_filelock.py"] = (ROOT / "python" / "filelock.py").read_bytes()
+    files["harness2/core/_filelock.py"] = (ROOT / "python" / "filelock.py").read_bytes().replace(b"\r\n", b"\n")
     manifest = {
         "repository": REPOSITORY, "commit": PIN, "license": "Apache-2.0 (third-party notices retained)",
         "hashAlgorithm": "sha256-lf", "patches": ["Windows/POSIX exclusive summary-file locking and bounded retry of atomic replace on Windows sharing errors", "Canonical POSIX harness keys on every platform; method, prompts, selection and library policy unchanged"],
@@ -62,7 +62,7 @@ def main() -> None:
         target = TARGET / name
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(body)
-    (TARGET / "PROVENANCE.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    (TARGET / "PROVENANCE.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(f"Mirrored {len(files)} upstream/compatibility files at {PIN}")
 
 if __name__ == "__main__":

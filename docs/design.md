@@ -48,6 +48,7 @@ flowchart TD
 - Node/TypeScript는 실행 인자·프로세스 수명·출력 전달만 담당한다. 알고리즘의 단계·순서·선택·Reflection을 복제하지 않는다.
 - Python 3.12/3.13을 사용한다. `HARNESS2_PYTHON`으로 실행 파일을 지정할 수 있다.
 - 원본 source는 Git object에서 추출하며 줄바꿈만 LF로 통일한다. 출처·커밋·원본 및 적용 파일 hash는 [PROVENANCE.json](../vendor/harness2/PROVENANCE.json)에 기록한다. upstream 파일 수정은 패치 재생성 스크립트에 명시해야 한다.
+- 미러에는 원본 source 106개와 로컬 호환 파일 1개를 담는다. 원본의 `assets/` 미디어 7개와 `dependencies/ASSETS.json`은 제외한다.
 - Windows에서는 Linux `flock` 대신 실제 OS byte lock을 사용한다. summary 교체는 Windows의 일시적인 파일 공유 오류만 짧게 재시도하며 한도 뒤에는 실패를 반환한다. harness 파일의 내부 키는 POSIX 경로로 통일한다. 이것이 로컬 호환 패치의 전부다.
 - 실제 모델을 사용하는 원본 benchmark는 **Linux/WSL**에서 원본 의존성·모델·인증을 설정해 실행한다. Windows native 호스트는 `demo`, `verify`, `test`, 각 명령의 도움말을 지원한다. native에서 benchmark를 부분 실행하거나 다른 adapter로 몰래 대체하지 않는다.
 - 원본 모델 실행은 설치된 일반 Codex/Claude 대화 프로필과 별도다. 예를 들어 원본 Codex executor pin은 `0.144.6`, 기존 chat adapter는 `0.163.0`이다. 같은 것으로 취급하지 않는다.
@@ -55,9 +56,11 @@ flowchart TD
 
 ## 저장과 소유권
 
-데모 기본 출력은 `.terminal-runner/harness2/demo-<id>/`다. `--output`으로 같은 폴더를 지정하면 원본 resume를 사용한다. 출력 폴더에는 고정 source·mode·k를 기록하는 소유권 marker를 만들며, marker 없는 기존 작업 폴더나 다른 설정의 결과 폴더를 덮어쓰지 않는다. 같은 출력의 동시 데모는 OS lock으로 순서대로 실행한다.
+데모 기본 출력은 `.terminal-runner/harness2/demo-<id>/`다. 상대 `--output` 경로는 `terminal-runner` 패키지 폴더 기준이다. `--output`으로 같은 폴더를 지정하면 원본 resume를 사용한다. 출력 폴더에는 고정 source·mode·k를 기록하는 소유권 marker를 만들며, marker 없는 기존 작업 폴더나 다른 설정의 결과 폴더를 덮어쓰지 않는다. 같은 출력의 동시 데모는 OS lock으로 순서대로 실행한다.
 
 원본의 `summary.json`, 단계별 harness, 실행 기록, selection, reflection, domain library를 보존한다. 외부 채점 결과는 개선 입력에 합치지 않는다. 기존 chat의 `state.sqlite`와 native thread/session은 이 저장 구조에 가져오지 않는다.
+
+출력 폴더를 Windows와 Linux 사이에 옮겨 이어서 실행하는 것은 보장하지 않는다. 원본의 일부 실행 식별 hash가 운영체제 경로 구분자를 사용하므로 작업이 다시 실행될 수 있다.
 
 ## 현재 검증과 다음 연결
 

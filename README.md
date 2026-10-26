@@ -12,7 +12,7 @@ npm ci --ignore-scripts
 npm run harness2 -- demo --k 1 --mode both
 ```
 
-원본 deterministic demo가 두 과제에서 기준 실행 → 후보 제안·실행 → Compose → 최종 실행·선택 → Reflection을 수행한다. 두 번째 과제는 첫 과제의 경험을 참고한다. 편집은 미리 정해진 fixture이며 **LLM 호출이나 실제 프로젝트의 성능 향상 검증은 아니다**. 기본 출력은 `.terminal-runner/harness2/demo-<id>/`다.
+원본 deterministic demo가 두 과제에서 기준 실행 → 후보 제안·실행 → Compose → 최종 실행·선택 → Reflection을 수행한다. 두 번째 과제는 첫 과제의 경험을 참고한다. 편집은 미리 정해진 fixture이며 **LLM 호출이나 실제 프로젝트의 성능 향상 검증은 아니다**. 기본 출력은 `.terminal-runner/harness2/demo-<id>/`다. 상대 `--output` 경로는 `terminal-runner` 패키지 폴더 기준이다.
 
 ```powershell
 # k=2: parallel / sequential의 원본 예산·경험 전달 확인
