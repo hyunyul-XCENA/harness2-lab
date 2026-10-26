@@ -172,6 +172,25 @@ test('one raw input lifetime spans picker and resumed conversation; first input 
   assert.deepEqual(t.input.modes, [true, false]);
 });
 
+test('EOF, Ctrl+D and SIGTERM during session-switch close supersede the picker; ended inputs never wait', async () => {
+  for (const termination of ['end', 'key', 'signal']) {
+    const s = setup(); let release!: () => void;
+    const nativeClose = s.manager.adapter.close.bind(s.manager.adapter);
+    s.manager.adapter.close = async session => {await new Promise<void>(resolve => {release = resolve;}); await nativeClose(session);};
+    try {
+      await s.manager.start(s.spec); s.app.ready();
+      const closing = s.app.finish('select');
+      if (termination === 'end') {s.input.end(); await until(() => s.input.readableEnded);}
+      else if (termination === 'key') s.input.write('\x04');
+      else process.emit('SIGTERM');
+      release(); await closing; assert.equal(await s.app.finished, 'quit'); assert.equal(s.input.isRaw, false);
+      if (termination === 'end') {
+        assert.equal(await Promise.race([chooseSession(s.store, s.project, s.stdin, s.stdout), new Promise(resolve => setTimeout(() => resolve('hung'), 100))]), undefined);
+      }
+    } finally {release?.(); await s.app.finish('quit'); s.store.close();}
+  }
+});
+
 test('closing during native startup closes the late live session; repeated close shares completion', async () => {
   const s = setup(); let release!: () => void;
   const nativeStart = s.manager.adapter.start.bind(s.manager.adapter);

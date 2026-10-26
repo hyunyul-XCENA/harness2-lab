@@ -8,6 +8,7 @@ import {clip, Editor, Screen, wrap, type Key, type TerminalInput, type TerminalO
 
 export type Selection = {engine: Engine; resume?: string};
 export function chooseSession(store: StateStore, project: string, input: TerminalInput, output: TerminalOutput, preferred: Engine = 'codex', shared?: Screen): Promise<Selection | undefined> {
+  if (input.readableEnded || input.destroyed) return Promise.resolve(undefined);
   const choices: {label: string; detail: string; selection: Selection}[] = ['codex', 'claude'].map(engine => ({label: `New ${engine} conversation`, detail: 'Uses current project settings and harness.', selection: {engine: engine as Engine}}));
   for (const row of store.list()) {
     const saved = store.checkpoint(row.id);
@@ -52,6 +53,8 @@ export class TuiApp {
   private reviewScroll = 0;
   private busy = false;
   private closing = false;
+  private exitAction: 'quit' | 'select' = 'quit';
+  private finishWork?: Promise<void>;
   private chain = Promise.resolve();
   private done: (action: 'quit' | 'select') => void = () => {};
   readonly finished = new Promise<'quit' | 'select'>(resolve => {this.done = resolve;});
@@ -93,9 +96,9 @@ export class TuiApp {
     this.chain = this.chain.then(async () => {if (!this.closing) await work();}).catch(error => this.note(`[error] ${errorText(error)}`));
   }
   private key(key: Key): void {
-    if (this.closing) return;
-    if (key.name === 'interrupt') {void this.interruptOrQuit(); return;}
+    if (key.name === 'interrupt') {if (this.closing) void this.finish('quit'); else void this.interruptOrQuit(); return;}
     if (key.name === 'eof') {void this.finish('quit'); return;}
+    if (this.closing) return;
     if (this.screen.rows < 12 || this.screen.columns < 45) return;
     if (key.name === 'pageup' || key.name === 'pagedown') {
       const delta = Math.max(1, this.screen.rows - 8) * (key.name === 'pageup' ? 1 : -1);
@@ -180,10 +183,14 @@ export class TuiApp {
     const hint = this.closing ? 'Closing native connection…' : this.busy ? 'Sending answer…' : 'Enter send | F2 request | PgUp/PgDn scroll | Ctrl+C interrupt/quit | /help';
     return {lines: [...header, '─'.repeat(columns), ...body, footer, `> ${view.text}`, hint, ''], ...(!this.closing && (!this.review || this.review.typing) ? {cursor: {row: rows - 2, column: view.cursor + 3}} : {})};
   }
-  async finish(action: 'quit' | 'select'): Promise<void> {
-    if (this.closing) return; this.closing = true; this.screen.invalidate();
-    try {await this.manager.close();} catch (error) {this.closeError = error;}
-    finally {this.dispose(); this.done(action);}
+  finish(action: 'quit' | 'select'): Promise<void> {
+    // Termination wins over a switch even while native close is still pending.
+    if (!this.closing || action === 'quit') this.exitAction = action;
+    return this.finishWork ??= (async () => {
+      this.closing = true; this.screen.invalidate();
+      try {await this.manager.close();} catch (error) {this.closeError = error;}
+      finally {this.dispose(); this.done(this.exitAction);}
+    })();
   }
   dispose(): void {
     clearInterval(this.tick);
