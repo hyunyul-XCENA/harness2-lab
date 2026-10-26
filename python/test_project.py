@@ -3,17 +3,19 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import time
 import unittest
+from unittest.mock import patch
 
 import harness2_runner as host
 from codex_local import CodexCLI, SUPPORTED_VERSION
 from project_adapter import ProjectAdapter
-from project_cli import judge, main as project_main, report, run, summaries
+from project_cli import judge, main as project_main, measure, report, run, summaries
 from project_store import initialize, load, tasks_from, unlinked
 
 FIXTURE = Path(__file__).parent / "fixtures/fake_codex.py"
@@ -23,9 +25,12 @@ class ProjectTests(unittest.TestCase):
         project, output = Path(directory) / "project", Path(directory) / "experiment"
         project.mkdir()
         (project / "main.py").write_text("def value():\n    return 0\n", encoding="utf-8")
+        (project / "tool").mkdir()
+        (project / "tool/entry.js").write_text("console.log('native-node-ok');\n", encoding="utf-8")
+        (project / "package.json").write_text('{"type":"module"}\n', encoding="utf-8")
         (project / "untracked.txt").write_text("private untracked work", encoding="utf-8")
         subprocess.run(["git", "init", "--quiet", str(project)], check=True)
-        subprocess.run(["git", "-C", str(project), "add", "--", "main.py"], check=True)
+        subprocess.run(["git", "-C", str(project), "add", "--", "main.py", "tool/entry.js", "package.json"], check=True)
         runtime = CodexCLI([sys.executable, str(FIXTURE)], "fixture", "medium", 10)
         settings = {"executable": sys.executable, "version": SUPPORTED_VERSION, "model": "fixture", "effort": "medium", "timeout": 10}
         tasks = [{"id": f"change-{i}", "domain": "coding", "prompt": "Change main.py value() to return 42."} for i in range(n)]
@@ -128,16 +133,30 @@ class ProjectTests(unittest.TestCase):
             failed = CodexCLI([sys.executable, str(FIXTURE)], "fixture-failure", "medium", 10)
             self.assertFalse(failed.invoke(root, "fixture", root / "failure")["ok"])
             timed = CodexCLI([sys.executable, str(FIXTURE)], "fixture-timeout", "medium", 0.5)
-            result = timed.invoke(root, "fixture", root / "timeout")
+            with patch.dict(os.environ, {"HARNESS2_FIXTURE_TIMEOUT_MARKER": str(root / "timeout-escaped.txt")}):
+                result = timed.invoke(root, "fixture", root / "timeout")
             self.assertTrue(result["timed_out"])
             self.assertFalse(result["ok"])
             time.sleep(1.6)
-            self.assertFalse((root / "timeout/child-escaped.txt").exists())
+            self.assertFalse((root / "timeout-escaped.txt").exists())
             argv = json.loads((root / "failure/events.jsonl").read_text().splitlines()[0])["argv"]
             self.assertIn("--ignore-user-config", argv)
             self.assertIn("--ephemeral", argv)
             self.assertEqual(argv[argv.index("--sandbox") + 1], "workspace-write")
             self.assertNotIn("--dangerously-bypass-approvals-and-sandbox", argv)
+            self.assertFalse(argv[argv.index("-C") + 1].startswith("\\\\?\\"))
+            self.assertFalse(argv[argv.index("--output-last-message") + 1].startswith("\\\\?\\"))
+
+    def test_native_node_entry_script_runs_in_measurement_workspace(self):
+        node = shutil.which("node")
+        self.assertIsNotNone(node, "Node 24 is a host prerequisite")
+        with tempfile.TemporaryDirectory(prefix="h2node-", dir=unlinked(Path(tempfile.gettempdir()))) as directory:
+            _, root, state, runtime = self.prepare(directory, n=1)
+            adapter = ProjectAdapter(root, state, runtime)
+            run_dir = adapter.execute("change-0", None, "project-cx-agg1/change-0/base1")
+            measured = measure(adapter, run_dir, [[node, "tool/entry.js"]], root / "node-check", 10)
+            self.assertTrue(measured["all_pass"])
+            self.assertIn("native-node-ok", (root / "node-check/0.stdout.txt").read_text())
 
     def test_dependency_snapshot_and_local_harness_constraints(self):
         with tempfile.TemporaryDirectory() as directory:

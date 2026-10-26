@@ -14,7 +14,7 @@ from harness2.core import _filelock
 from harness2.core.schedule import Namespace, mode_token, run_sweep
 from codex_local import CodexCLI, CodexProposer, resolve_runtime, stop_tree
 from project_adapter import ProjectAdapter
-from project_store import digest, initialize, json_bytes, load, relative, tasks_from, unlinked, write_json
+from project_store import digest, initialize, json_bytes, load, native_cwd, relative, tasks_from, unlinked, write_json
 
 def modes_of(state):
     return ("agg", "seq") if state["mode"] == "both" else (mode_token(state["mode"]),)
@@ -70,7 +70,7 @@ def measure(adapter, run_dir, commands, output, timeout):
         for i, command in enumerate(commands):
             started, expired = time.monotonic(), False
             with (output / f"{i}.stdout.txt").open("wb") as stdout, (output / f"{i}.stderr.txt").open("wb") as stderr:
-                process = subprocess.Popen(command, cwd=workspace, stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0, start_new_session=os.name != "nt")
+                process = subprocess.Popen(command, cwd=native_cwd(workspace), stdin=subprocess.DEVNULL, stdout=stdout, stderr=stderr, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0, start_new_session=os.name != "nt")
                 try:
                     process.wait(timeout=timeout)
                 except subprocess.TimeoutExpired:

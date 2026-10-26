@@ -42,6 +42,22 @@ def unlinked(path: Path) -> Path:
             raise ValueError(f"Linked path is not supported: {p}")
     return path
 
+def plain_path(path: Path) -> str:
+    """Native tools such as Node need ordinary cwd/argv, not Win32 verbatim paths."""
+    value = str(path)
+    if os.name == "nt":
+        if value.startswith("\\\\?\\UNC\\"):
+            return "\\\\" + value[8:]
+        if value.startswith("\\\\?\\"):
+            return value[4:]
+    return value
+
+def native_cwd(path: Path) -> str:
+    value = plain_path(path)
+    if os.name == "nt" and len(value) >= 248:
+        raise ValueError("Native tools need a shorter temporary workspace; set TMP/TEMP to a shorter directory")
+    return value
+
 def files(root: Path, *, ignore: set[str] | None = None) -> dict[str, Path]:
     root = unlinked(root)
     out = {}

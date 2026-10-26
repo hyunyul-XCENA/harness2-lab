@@ -8,12 +8,13 @@ from pathlib import Path
 import shutil
 import signal
 import subprocess
+import tempfile
 import time
 import uuid
 
 from harness2.core.proposer import Proposer
 from harness2.substrate.codex import final_message
-from project_store import files, write_json
+from project_store import files, native_cwd, plain_path, unlinked, write_json
 
 SUPPORTED_VERSION = "codex-cli 0.164.0"
 
@@ -47,18 +48,24 @@ class CodexCLI:
         output.mkdir(parents=True, exist_ok=True)
         # Native CLI authentication is inherited. Global config/rules are excluded
         # from an experimental harness; workspace writes retain the native sandbox.
-        command = [*self.argv, "exec", "--model", self.model, "-c", f'model_reasoning_effort={json.dumps(self.effort)}', "-c", 'approval_policy="never"', "-c", 'features.multi_agent=false', "--ignore-user-config", "--ignore-rules", "--sandbox", "workspace-write", "--skip-git-repo-check", "--ephemeral", "--json", "--color", "never", "-C", str(cwd), "--output-last-message", str(output / "answer.txt"), "-"]
         env = {k: v for k, v in os.environ.items() if not k.startswith("ORCA_")}
         started = time.monotonic()
         timed_out = False
-        with (output / "events.jsonl").open("wb") as stdout, (output / "stderr.txt").open("wb") as stderr:
-            process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=stdout, stderr=stderr, cwd=cwd, env=env, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0, start_new_session=os.name != "nt")
-            try:
-                process.communicate(mission.encode("utf-8"), timeout=timeout or self.timeout)
-            except subprocess.TimeoutExpired:
-                timed_out = True
-                stop_tree(process)
-                process.communicate(timeout=15)
+        launch_cwd = native_cwd(cwd)
+        # The durable log directory can exceed MAX_PATH. Capture the CLI's
+        # response at a short ordinary path, then persist it using Python paths.
+        with tempfile.TemporaryDirectory(prefix="h2native-", dir=unlinked(Path(tempfile.gettempdir()))) as directory:
+            response = Path(directory) / "answer.txt"
+            command = [*self.argv, "exec", "--model", self.model, "-c", f'model_reasoning_effort={json.dumps(self.effort)}', "-c", 'approval_policy="never"', "-c", 'features.multi_agent=false', "--ignore-user-config", "--ignore-rules", "--sandbox", "workspace-write", "--skip-git-repo-check", "--ephemeral", "--json", "--color", "never", "-C", launch_cwd, "--output-last-message", plain_path(response), "-"]
+            with (output / "events.jsonl").open("wb") as stdout, (output / "stderr.txt").open("wb") as stderr:
+                process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=stdout, stderr=stderr, cwd=launch_cwd, env=env, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0, start_new_session=os.name != "nt")
+                try:
+                    process.communicate(mission.encode("utf-8"), timeout=timeout or self.timeout)
+                except subprocess.TimeoutExpired:
+                    timed_out = True
+                    stop_tree(process)
+                    process.communicate(timeout=15)
+            native_text = response.read_text(encoding="utf-8", errors="replace") if response.is_file() else None
         events = []
         for line in (output / "events.jsonl").read_text(encoding="utf-8", errors="replace").splitlines():
             try:
@@ -68,9 +75,8 @@ class CodexCLI:
             except ValueError:
                 continue
         answer = output / "answer.txt"
-        text = answer.read_text(encoding="utf-8", errors="replace") if answer.is_file() else final_message(output / "events.jsonl")
-        if not answer.is_file():
-            answer.write_text(text, encoding="utf-8")
+        text = native_text if native_text is not None else final_message(output / "events.jsonl")
+        answer.write_text(text, encoding="utf-8")
         success = process.returncode == 0 and not timed_out and any(e.get("type") == "turn.completed" for e in events) and not any(e.get("type") in {"turn.failed", "error"} for e in events) and bool(text.strip())
         result = {"ok": success, "exit_code": process.returncode, "timed_out": timed_out, "wall_s": round(time.monotonic() - started, 3), "usage": next((e.get("usage", {}) for e in reversed(events) if e.get("type") == "turn.completed"), {}), "cost_usd": None}
         write_json(output / "native.json", result)

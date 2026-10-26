@@ -42,7 +42,7 @@ npm run harness2 -- project report --output .terminal-runner/harness2/approval-t
 
 ## 저장·재개·편집 범위
 
-Windows 파일 경로는 내부에서 extended-length 형식으로 다뤄 긴 출력·의존성 경로도 복사한다. 전역 LongPathsEnabled 설정은 바꾸지 않는다. 폴더·파일 이름 한 개의 길이 등 파일시스템 자체 한도는 그대로다. JSON이나 출력에 Windows 경로 접두어가 포함될 수 있다.
+Windows 파일 경로는 Python의 복사·검증에서 extended-length 형식으로 다룬다. Node·Codex 등 native 프로세스에는 일반 경로의 짧은 임시 작업 디렉터리를 전달하고, 응답은 짧은 임시 경로에서 받아 영구 결과 폴더로 복사한다. 전역 LongPathsEnabled 설정은 바꾸지 않는다. 폴더·파일 이름 한 개의 길이 등 파일시스템 자체 한도는 그대로다. JSON이나 출력에 Windows 경로 접두어가 포함될 수 있다. 임시 폴더 경로 자체가 너무 길면 더 짧은 TMP/TEMP 위치를 지정해야 한다.
 
 소스의 `.codex`/`.claude` 폴더는 제외한다. 의존성 사본은 전체 바이트를 보존하므로 `lib/.codex`처럼 의존성 내부에 있는 폴더는 포함할 수 있다. 이 폴더는 workspace root의 native 설정으로 설치하지 않는다.
 

@@ -1,5 +1,6 @@
 """Model-free executable fixture for native Codex sessions (never a production mode)."""
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -14,7 +15,7 @@ model = sys.argv[sys.argv.index("--model") + 1]
 mission = sys.stdin.read()
 print(json.dumps({"type": "fixture.argv", "argv": sys.argv[1:]}), flush=True)
 if model == "fixture-timeout":
-    subprocess.Popen([sys.executable, "-c", "import time,pathlib,sys; time.sleep(1.5); pathlib.Path(sys.argv[1]).write_text('escaped')", str(answer.parent / "child-escaped.txt")])
+    subprocess.Popen([sys.executable, "-c", "import time,pathlib,sys; time.sleep(1.5); pathlib.Path(sys.argv[1]).write_text('escaped')", os.environ.get("HARNESS2_FIXTURE_TIMEOUT_MARKER", str(answer.parent / "child-escaped.txt"))])
     time.sleep(20)
 if model == "fixture-failure":
     answer.write_text("looks successful", encoding="utf-8")
