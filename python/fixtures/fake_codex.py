@@ -23,6 +23,20 @@ answer = Path(sys.argv[sys.argv.index("--output-last-message") + 1])
 model = sys.argv[sys.argv.index("--model") + 1]
 mission = sys.stdin.read()
 print(json.dumps({"type": "fixture.argv", "argv": sys.argv[1:]}), flush=True)
+if model.startswith("fixture-event-"):
+    retry = {"type": "error", "message": "Reconnecting... 2/5 (stream disconnected before completion: No such host is known. (os error 11001))"}
+    complete = {"type": "turn.completed", "usage": {"input_tokens": 10, "output_tokens": 5}}
+    variants = {
+        "recovered": [retry, complete],
+        "unfinished": [retry],
+        "failed": [retry, {"type": "turn.failed", "error": {"message": "still failed"}}],
+        "unknown": [{"type": "error", "message": "unexpected fatal error"}, complete],
+        "late": [complete, retry],
+    }
+    answer.write_text("fixture deliverable", encoding="utf-8")
+    for event in variants[model.removeprefix("fixture-event-")]:
+        print(json.dumps(event), flush=True)
+    raise SystemExit(0)
 if model == "fixture-timeout":
     subprocess.Popen([sys.executable, "-c", "import time,pathlib,sys; time.sleep(1.5); pathlib.Path(sys.argv[1]).write_text('escaped')", os.environ.get("HARNESS2_FIXTURE_TIMEOUT_MARKER", str(answer.parent / "child-escaped.txt"))])
     time.sleep(20)

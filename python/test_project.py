@@ -151,6 +151,16 @@ class ProjectTests(unittest.TestCase):
             self.assertFalse(argv[argv.index("-C") + 1].startswith("\\\\?\\"))
             self.assertFalse(argv[argv.index("--output-last-message") + 1].startswith("\\\\?\\"))
 
+    def test_native_transport_accepts_only_retries_followed_by_completion(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            for variant in ["recovered", "unfinished", "failed", "unknown", "late"]:
+                with self.subTest(variant=variant):
+                    runtime = CodexCLI([sys.executable, str(FIXTURE)], "fixture-event-" + variant, "medium", 10)
+                    result = runtime.invoke(root, "fixture", root / variant)
+                    self.assertEqual(result["ok"], variant == "recovered")
+                    self.assertEqual(result["recovered_transport_errors"], int(variant == "recovered"))
+
     @unittest.skipUnless(os.name == "nt", "Windows sandbox startup check")
     def test_windows_preflight_rejects_before_any_model_session(self):
         with tempfile.TemporaryDirectory() as directory:

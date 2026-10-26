@@ -10,6 +10,8 @@ Windows에서는 사용자 config를 제외해도 sandbox backend가 정해지�
 
 시작 검사에 사용하는 `codex sandbox`는 사용자 config를 포함하고, 실제 모델 세션은 `--ignore-user-config`로 제외한다. 두 경로 모두 MXC를 명시하지만 설정 전체가 같다는 뜻은 아니다. `preflight.json`의 `include_managed_config_flag`는 관리형 설정 포함 옵션을 요청했다는 기록이며, 관리형 요구사항 파일의 존재나 개별 정책 적용을 검증한 결과는 아니다. 시작 검사 시간이 초과되면 자식 프로세스까지 종료한다.
 
+Codex CLI 0.164.0의 `Reconnecting... n/m (...)` 알림 뒤에 정상 완료 이벤트가 오면 복구된 전송으로 기록한다. 완료되지 않은 재연결, 알 수 없는 오류, 완료 뒤의 오류와 `turn.failed`는 계속 실패로 처리한다. `native.json`의 `ok`는 전송·턴 완료를 뜻하며, 요청한 소프트웨어 동작의 성공 여부는 선택 이후 외부 검사로 판단한다.
+
 PowerShell에서 준비한다. 첫 명령은 모델을 호출하지 않는다. `node_modules`와 원본 엔진은 작업 소스와 분리해 의존성 사본으로 보관한다.
 
 ```powershell

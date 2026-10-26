@@ -5,6 +5,7 @@ from dataclasses import dataclass
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import signal
 import subprocess
@@ -103,8 +104,14 @@ class CodexCLI:
         answer = output / "answer.txt"
         text = native_text if native_text is not None else final_message(output / "events.jsonl")
         answer.write_text(text, encoding="utf-8")
-        success = process.returncode == 0 and not timed_out and any(e.get("type") == "turn.completed" for e in events) and not any(e.get("type") in {"turn.failed", "error"} for e in events) and bool(text.strip())
-        result = {"ok": success, "exit_code": process.returncode, "timed_out": timed_out, "wall_s": round(time.monotonic() - started, 3), "usage": next((e.get("usage", {}) for e in reversed(events) if e.get("type") == "turn.completed"), {}), "cost_usd": None, "windows_sandbox": "mxc" if os.name == "nt" else None}
+        completed = max((i for i, e in enumerate(events) if e.get("type") == "turn.completed"), default=-1)
+        # Pinned CLI 0.164.0 emits retry notices as error events even when the
+        # connection recovers. Only its observed retry format, followed by a
+        # completed turn, is recoverable; unknown or final errors still fail.
+        recovered = {i for i, e in enumerate(events) if e.get("type") == "error" and i < completed and re.match(r"^Reconnecting\.\.\. [1-9][0-9]*/[1-9][0-9]* \(", str(e.get("message", "")))}
+        fatal = any(e.get("type") == "turn.failed" or e.get("type") == "error" and i not in recovered for i, e in enumerate(events))
+        success = process.returncode == 0 and not timed_out and completed >= 0 and not fatal and bool(text.strip())
+        result = {"ok": success, "exit_code": process.returncode, "timed_out": timed_out, "wall_s": round(time.monotonic() - started, 3), "usage": next((e.get("usage", {}) for e in reversed(events) if e.get("type") == "turn.completed"), {}), "cost_usd": None, "windows_sandbox": "mxc" if os.name == "nt" else None, "recovered_transport_errors": len(recovered)}
         write_json(output / "native.json", result)
         return result | {"text": text}
 
