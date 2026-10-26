@@ -1,7 +1,7 @@
 import type {SessionManager} from './session.js';
 import {errorText, record} from './util.js';
 
-export const help = `Terminal Runner 0.5 — chat prototype / pinned original Harness² engine
+export const help = `Harness² Lab 0.5 — chat prototype / pinned original Harness² engine
 Original engine: npm start -- --harness2 demo --k 1 --mode both
 Usage: npm start -- --project <directory> [--engine codex|claude] [--home <directory>] [--model <model>] [--resume <session-id>]
 Options: --codex-path <executable>, --claude-path <executable>, --sessions, --select, --plain, --tui, --help

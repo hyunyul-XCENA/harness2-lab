@@ -1,4 +1,6 @@
-# Harness² 실행 호스트와 대화 프로토타입
+# Harness² Lab
+
+[Google Research Harness²](https://github.com/google-research/harness2)의 공개 코어에 로컬 프로젝트 실행·재개·평가 호스트를 더한 프로젝트다. 원본 라이선스와 third-party 고지는 [vendor/harness2/LICENSE](vendor/harness2/LICENSE), [출처 기록](vendor/harness2/PROVENANCE.json)에 보존한다.
 
 **원본 Harness²의 Python 코어를 고정 버전으로 직접 실행**한다. 과제별 Propose–Probe–Compose, 최종 결과 선택, Reflection과 domain 경험 저장을 원본 코드에 맡긴다. 별도로 기존 Codex/Claude 대화 TUI 프로토타입도 남아 있다. 두 실행 경로는 설정·세션·harness 형식이 다르다.
 
@@ -7,12 +9,15 @@
 Node.js 24.x와 Python **3.12 또는 3.13**이 필요하다. 모델 없는 데모는 Windows에서도 실행할 수 있다.
 
 ```powershell
-cd C:\Users\hyunyul\orca\projects\research\terminal-runner
+git clone https://github.com/hyunyul-XCENA/harness2-lab.git
+cd harness2-lab
 npm ci --ignore-scripts
 npm run harness2 -- demo --k 1 --mode both
 ```
 
-원본 deterministic demo가 두 과제에서 기준 실행 → 후보 제안·실행 → Compose → 최종 실행·선택 → Reflection을 수행한다. 두 번째 과제는 첫 과제의 경험을 참고한다. 편집은 미리 정해진 fixture이며 **LLM 호출이나 실제 프로젝트의 성능 향상 검증은 아니다**. 기본 출력은 `.terminal-runner/harness2/demo-<id>/`다. 상대 `--output` 경로는 `terminal-runner` 패키지 폴더 기준이다.
+원본 deterministic demo가 두 과제에서 기준 실행 → 후보 제안·실행 → Compose → 최종 실행·선택 → Reflection을 수행한다. 두 번째 과제는 첫 과제의 경험을 참고한다. 편집은 미리 정해진 fixture이며 **LLM 호출이나 실제 프로젝트의 성능 향상 검증은 아니다**. 기본 출력은 `.terminal-runner/harness2/demo-<id>/`다. 상대 `--output` 경로는 `harness2-lab` 패키지 폴더 기준이다.
+
+설정·상태 디렉터리는 기존 데이터와의 호환을 위해 `.terminal-runner/` 이름을 사용한다.
 
 ```powershell
 # k=2: parallel / sequential의 원본 예산·경험 전달 확인
@@ -40,14 +45,14 @@ npm run harness2 -- report --bench lab --substrate oc --k 1 --mode parallel
 
 `project init/run/judge/report`로 Git 소스 스냅샷에 원본 PPC를 적용할 수 있다. 로컬 adapter는 native **Codex CLI 0.164.0**과 기존 로그인을 사용한다. 기본 `k=1`, parallel은 과제당 solver 4회·편집/Reflection 4회의 실제 모델 세션을 사용한다. 결과는 패치와 변경 파일로 보관한다.
 
-[실행 방법과 terminal-runner 승인 대기시간 예제](docs/local-project.md)에 준비·실행·외부 비교 명령을 정리했다. `init`과 `check`는 모델을 호출하지 않는다. 공개 benchmark용 환경·모델 pin과 별도인 로컬 확장이다.
+[실행 방법과 승인 대기시간 예제](docs/local-project.md)에 준비·실행·외부 비교 명령을 정리했다. `init`과 `check`는 모델을 호출하지 않는다. 공개 benchmark용 환경·모델 pin과 별도인 로컬 확장이다.
 
 ## 기존 대화 TUI 실행 — 원본 PPC가 적용되지 않는 프로토타입
 
 Node.js **24.x**와 사용할 실행기의 로그인이 필요하다. 지원 조합은 **Codex CLI 0.163.0**, 또는 **Claude Code 2.1.309 + Agent SDK 0.3.309**다. SDK는 `npm ci`로 설치한다. 다른 CLI 버전은 연결 전에 거절한다. `codex --version`, `claude --version`으로 확인할 수 있다. 로컬 실행기의 기존 인증을 사용하며 앱 설정에 API key를 복사하지 않는다.
 
 ```powershell
-cd C:\Users\hyunyul\orca\projects\research\terminal-runner
+cd path\to\harness2-lab
 npm ci --ignore-scripts
 npm run build
 npm start -- --project "C:\작업\내프로젝트"

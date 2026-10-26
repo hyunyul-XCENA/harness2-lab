@@ -77,7 +77,7 @@ export class CodexAdapter implements AgentAdapter {
       this.queue.end();
     });
     try {
-      const initialize: InitializeParams = {clientInfo: {name: 'terminal_runner', title: 'Terminal Runner', version: '0.1.0'}, capabilities: {experimentalApi: true, requestAttestation: false}};
+      const initialize: InitializeParams = {clientInfo: {name: 'terminal_runner', title: 'Harness² Lab', version: '0.1.0'}, capabilities: {experimentalApi: true, requestAttestation: false}};
       await rpc.call('initialize', initialize); rpc.send({method: 'initialized'});
       const common = {cwd: spec.cwd, ...(previous?.resolvedModel ?? spec.model ? {model: previous?.resolvedModel ?? spec.model} : {}), developerInstructions: spec.harness.appendedInstructions, approvalPolicy: 'on-request' as const, sandbox: this.options.sandbox ?? 'workspace-write' as const};
       const params: ThreadStartParams | ThreadResumeParams = previous ? {...common, threadId: previous.nativeSessionId} : common;

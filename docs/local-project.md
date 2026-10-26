@@ -2,7 +2,7 @@
 
 `project` 명령은 고정된 Harness² 코어에 로컬 프로젝트 `BenchmarkAdapter`와 native Codex 전송 경로를 추가한다. 원본 `run_sweep`, recursion, selection, reflection, library 코드는 수정하지 않는다. 기존 공개 benchmark의 실행 환경을 재현하는 명령은 아니다.
 
-## terminal-runner 예제
+## Harness² Lab 예제
 
 현재 지원하는 로컬 조합은 Python 3.12/3.13, Node 24, **native Codex CLI 0.164.0**이다. 기존 Codex 로그인을 사용한다. 모델은 계정에서 사용할 수 있는 ID를 직접 지정한다. 공개 benchmark의 Codex pin 0.144.6과 기존 chat adapter의 pin 0.163.0은 별도다.
 
@@ -15,9 +15,9 @@ Codex CLI 0.164.0의 `Reconnecting... n/m (...)` 알림 뒤에 정상 완료 이
 PowerShell에서 준비한다. 첫 명령은 모델을 호출하지 않는다. `node_modules`와 원본 엔진은 작업 소스와 분리해 의존성 사본으로 보관한다.
 
 ```powershell
-cd C:\Users\hyunyul\orca\projects\research\terminal-runner
+cd path\to\harness2-lab
 npm ci --ignore-scripts
-npm run harness2 -- project init --project . --tasks examples/harness2/terminal-runner.tasks.json --model gpt-6.1-sol --deps node_modules --deps vendor/harness2 --output .terminal-runner/harness2/approval-timeout
+npm run harness2 -- project init --project . --tasks examples/harness2/approval-timeout.tasks.json --model gpt-6.1-sol --deps node_modules --deps vendor/harness2 --output .terminal-runner/harness2/approval-timeout
 npm run harness2 -- project check --output .terminal-runner/harness2/approval-timeout
 ```
 

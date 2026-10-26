@@ -56,7 +56,7 @@ flowchart TD
 
 ## 저장과 소유권
 
-데모 기본 출력은 `.terminal-runner/harness2/demo-<id>/`다. 상대 `--output` 경로는 `terminal-runner` 패키지 폴더 기준이다. `--output`으로 같은 폴더를 지정하면 원본 resume를 사용한다. 출력 폴더에는 고정 source·mode·k를 기록하는 소유권 marker를 만들며, marker 없는 기존 작업 폴더나 다른 설정의 결과 폴더를 덮어쓰지 않는다. 같은 출력의 동시 데모는 OS lock으로 순서대로 실행한다.
+데모 기본 출력은 `.terminal-runner/harness2/demo-<id>/`다. 상대 `--output` 경로는 `harness2-lab` 패키지 폴더 기준이다. `--output`으로 같은 폴더를 지정하면 원본 resume를 사용한다. 출력 폴더에는 고정 source·mode·k를 기록하는 소유권 marker를 만들며, marker 없는 기존 작업 폴더나 다른 설정의 결과 폴더를 덮어쓰지 않는다. 같은 출력의 동시 데모는 OS lock으로 순서대로 실행한다.
 
 원본의 `summary.json`, 단계별 harness, 실행 기록, selection, reflection, domain library를 보존한다. 외부 채점 결과는 개선 입력에 합치지 않는다. 기존 chat의 `state.sqlite`와 native thread/session은 이 저장 구조에 가져오지 않는다.
 

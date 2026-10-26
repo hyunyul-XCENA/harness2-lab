@@ -28,11 +28,11 @@ export function chooseSession(store: StateStore, project: string, input: Termina
     };
     const draw = (): {lines: string[]} => {
       const columns = screen.columns, rows = screen.rows;
-      if (rows < 12 || columns < 45) return {lines: ['Terminal Runner: enlarge terminal to 46 x 12.', 'Esc / Ctrl+C: quit']};
+      if (rows < 12 || columns < 45) return {lines: ['Harness² Lab: enlarge terminal to 46 x 12.', 'Esc / Ctrl+C: quit']};
       const available = Math.max(1, rows - 10), offset = Math.max(0, Math.min(index - Math.floor(available / 2), choices.length - available));
       const list = choices.slice(offset, offset + available).map((value, i) => `${offset + i === index ? '>' : ' '} ${value.label}`);
       while (list.length < available) list.push('');
-      return {lines: ['TERMINAL RUNNER 0.3 | new / resume', clip(project, columns), '─'.repeat(columns), ...list, '─'.repeat(columns), ...choices[index]!.detail.split('\n').slice(0, 3), '', '↑/↓ choose  Enter open  Esc quit']};
+      return {lines: ['HARNESS² LAB 0.5 | new / resume', clip(project, columns), '─'.repeat(columns), ...list, '─'.repeat(columns), ...choices[index]!.detail.split('\n').slice(0, 3), '', '↑/↓ choose  Enter open  Esc quit']};
     };
     const screen = shared ?? new Screen(input, output, onKey, draw);
     if (shared) screen.setView(onKey, draw);
@@ -154,9 +154,9 @@ export class TuiApp {
   }
   private frame(project: string, engine: Engine): {lines: string[]; cursor?: {row: number; column: number}} {
     const columns = this.screen.columns, rows = this.screen.rows;
-    if (rows < 12 || columns < 45) return {lines: ['Terminal Runner: enlarge terminal to 46 x 12.', 'Ctrl+C interrupt / quit; Ctrl+D quit']};
+    if (rows < 12 || columns < 45) return {lines: ['Harness² Lab: enlarge terminal to 46 x 12.', 'Ctrl+C interrupt / quit; Ctrl+D quit']};
     const c = this.model.checkpoint, counts = [...this.model.receipts.values()].reduce<Record<string, number>>((out, value) => {out[value.status] = (out[value.status] ?? 0) + 1; return out;}, {});
-    const header = [`TERMINAL RUNNER | ${engine} | ${this.closing ? 'closing' : this.model.state} | ${c?.resolvedModel ?? c?.spec.model ?? 'native default'}`, project, `session ${c?.spec.appSessionId ?? 'opening…'} | harness ${c ? `${c.spec.harness.scope}:${c.spec.harness.id} ${c.spec.harness.digest.slice(0, 8)}` : 'loading'}`];
+    const header = [`HARNESS² LAB | ${engine} | ${this.closing ? 'closing' : this.model.state} | ${c?.resolvedModel ?? c?.spec.model ?? 'native default'}`, project, `session ${c?.spec.appSessionId ?? 'opening…'} | harness ${c ? `${c.spec.harness.scope}:${c.spec.harness.id} ${c.spec.harness.digest.slice(0, 8)}` : 'loading'}`];
     const bodyHeight = rows - 8;
     let body: string[], footer: string, editor = this.editor;
     if (this.review) {

@@ -1,9 +1,0 @@
-{
-  "tasks": [
-    {
-      "id": "approval-timeout",
-      "domain": "terminal-runtime",
-      "prompt": "terminal-runner의 승인·질문 요청 대기시간을 runtime.approvalTimeoutMs 설정으로 조절할 수 있게 해 주세요. 공통 설정과 프로젝트 설정의 기존 합치기 규칙을 따르고, 기본값은 현재와 같은 180000ms로 유지하세요. 1000..3600000 범위의 정수만 허용하고 잘못된 값은 시작할 때 거절하세요. Codex와 Claude adapter 모두 설정한 값으로 요청 만료 시각과 타이머를 계산해야 합니다. README에 설정 예제를 추가하고, 두 adapter의 전달과 설정 검증을 확인하는 모델 없는 테스트를 작성하세요. 실행 중 대기시간을 바꾸거나 승인 만료를 끄는 기능은 필요하지 않습니다. 작업은 소스 변경으로 남겨 주세요."
-    }
-  ]
-}
