@@ -86,10 +86,10 @@ export class SessionManager extends EventEmitter {
   }
   async input(text: string, steer = false): Promise<string> {
     if (!this.live || ['failed', 'closed', 'opening', 'recovering'].includes(this.state)) throw new Error('No ready session');
-    if (this.uncertain) throw new Error('An earlier delivery is unknown. Review history and use /ack-unknown before sending more input');
+    if (this.uncertain) throw new Error('An earlier delivery is unknown. Review history and use ::ack-unknown before sending more input');
     if (!text.trim()) throw new Error('Empty input');
     if (this.pending.size) throw new Error('Answer the pending request first');
-    if (steer && this.capabilities?.midTurnInput !== 'steer') throw new Error('This runtime supports queued follow-ups; /steer is not supported');
+    if (steer && this.capabilities?.midTurnInput !== 'steer') throw new Error('This runtime supports queued follow-ups; ::steer is not supported');
     if (steer && (!this.activeTurn || this.delivering)) throw new Error('Steer requires an active turn with no submission in progress');
     if (!steer && this.queued) throw new Error('The one-message queue is full');
     const input: InputMessage = {requestId: id(), text, mode: steer ? 'steer-current-turn' : 'next-turn', ...(steer ? {expectedNativeTurnId: this.activeTurn} : {})};

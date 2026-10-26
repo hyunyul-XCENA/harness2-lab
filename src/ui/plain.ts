@@ -37,7 +37,7 @@ export class PlainApp {
   constructor(private manager: SessionManager) {manager.on('event', this.onEvent); manager.on('failure', this.onFailure);}
   note(text: string): void {if (this.streaming) {process.stdout.write('\n'); this.streaming = false;} console.log(clean(text));}
   ready(): void {
-    this.note('Ready. /help for commands.');
+    this.note('Ready. ::help for runner commands.');
     this.rl = readline.createInterface({input: process.stdin, output: process.stdout, terminal: !!process.stdin.isTTY, prompt: '> '});
     this.rl.on('line', (input: string) => {
       this.chain = this.chain.then(async () => {

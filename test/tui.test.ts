@@ -217,7 +217,7 @@ test('CLI rejects forced TUI on pipes and retains plain EOF/quit behavior withou
   assert.equal(result.status, 1); assert.match(result.stderr, /interactive terminal/); assert.ok(!result.stdout.includes('\x1b[?1049h'));
   const listed = spawnSync(process.execPath, [cli, '--sessions', '--project', cwd, '--home', path.join(cwd, 'home')], {encoding: 'utf8', windowsHide: true});
   assert.equal(listed.status, 0); assert.ok(!listed.stdout.includes('\x1b[?1049h'));
-  for (const input of ['/help\n/history\n/quit\n', '']) {
+  for (const input of ['::help\n::history\n::quit\n', '']) {
     const plain = spawnSync(process.execPath, [path.join(root, 'dist/test/fixtures/plain-runner.js'), cwd], {input, encoding: 'utf8', windowsHide: true, timeout: 5000});
     assert.equal(plain.status, 0, plain.stderr); assert.match(plain.stdout, /fixture closed 1/); assert.ok(!plain.stdout.includes('\x1b[?1049h'));
   }

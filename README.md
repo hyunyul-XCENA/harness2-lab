@@ -36,6 +36,12 @@ npm run harness2 -- report --bench lab --substrate oc --k 1 --mode parallel
 
 원본 커밋은 `1cfe254e8d25b15f37048c3730134686abe60335`다. 출처·파일 hash는 [PROVENANCE.json](vendor/harness2/PROVENANCE.json), 로컬 Windows 잠금/경로 호환 수정은 [재생성 스크립트](scripts/vendor-harness2.py)에 기록한다. core 알고리즘을 수동 A/B·사용자 채택 흐름으로 바꾸지 않는다. [현재 설계](docs/design.md)에 원본과 같은 점·호환 패치·아직 연결하지 않은 부분을 구분했다.
 
+## 실제 프로젝트에서 실행
+
+`project init/run/judge/report`로 Git 소스 스냅샷에 원본 PPC를 적용할 수 있다. 로컬 adapter는 native **Codex CLI 0.164.0**과 기존 로그인을 사용한다. 기본 `k=1`, parallel은 과제당 solver 4회·편집/Reflection 4회의 실제 모델 세션을 사용한다. 결과는 패치와 변경 파일로 보관한다.
+
+[실행 방법과 terminal-runner 승인 대기시간 예제](docs/local-project.md)에 준비·실행·외부 비교 명령을 정리했다. `init`과 `check`는 모델을 호출하지 않는다. 공개 benchmark용 환경·모델 pin과 별도인 로컬 확장이다.
+
 ## 기존 대화 TUI 실행 — 원본 PPC가 적용되지 않는 프로토타입
 
 Node.js **24.x**와 사용할 실행기의 로그인이 필요하다. 지원 조합은 **Codex CLI 0.163.0**, 또는 **Claude Code 2.1.309 + Agent SDK 0.3.309**다. SDK는 `npm ci`로 설치한다. 다른 CLI 버전은 연결 전에 거절한다. `codex --version`, `claude --version`으로 확인할 수 있다. 로컬 실행기의 기존 인증을 사용하며 앱 설정에 API key를 복사하지 않는다.
@@ -58,34 +64,36 @@ npm start -- --project "C:\작업\내프로젝트" --engine codex --plain
 
 대화 화면 위에는 실행기·모델·상태·세션 ID·harness 버전을 표시한다. PgUp/PgDn으로 대화를 스크롤하고 Esc로 최신 위치로 돌아온다. ↑/↓는 입력 기록, ←/→·Home/End·Backspace/Delete는 입력 편집이다. 한글·이모지는 글자 단위로 이동한다. 터미널이 bracketed paste를 지원하면 여러 줄 붙여넣기는 입력창에 모으며 Enter를 누를 때 보낸다. 화면은 최소 46열 × 12행이 필요하며, 더 작아지면 일반 입력과 승인 키를 멈춘다. Ctrl+C/Ctrl+D 종료·중단은 계속 쓸 수 있다.
 
-승인이나 질문이 오면 **F2**로 검토 화면을 연다. 승인은 기본이 거절이며 방향키로 `Allow once`를 선택한 뒤 Enter를 눌러야 허용한다. PgUp/PgDn으로 제안한 입력과 diff를 읽을 수 있다. 질문은 ↑/↓와 Enter로 고르며, 자유 답변을 지원하면 `Type an answer…`를 골라 입력한다. Esc/F2로 검토를 닫아도 원래 입력하던 초안은 남는다. 만료됐거나 이전 연결의 요청은 답하지 않는다. 아래의 slash 명령도 두 화면에서 같은 방식으로 동작한다.
+승인이나 질문이 오면 **F2**로 검토 화면을 연다. 승인은 기본이 거절이며 방향키로 `Allow once`를 선택한 뒤 Enter를 눌러야 허용한다. PgUp/PgDn으로 제안한 입력과 diff를 읽을 수 있다. 질문은 ↑/↓와 Enter로 고르며, 자유 답변을 지원하면 `Type an answer…`를 골라 입력한다. Esc/F2로 검토를 닫아도 원래 입력하던 초안은 남는다. 만료됐거나 이전 연결의 요청은 답하지 않는다. 아래의 `::` 실행기 명령도 두 화면에서 같은 방식으로 동작한다.
 
 일반 문장을 입력하면 새 turn이 시작된다. 응답이 끝나도 실행기 프로세스와 native 대화는 유지된다. Claude는 열린 async 입력 스트림을 사용하는 하나의 `query()`를 유지한다. 실행 중 입력은 하나까지 대기하며, 현재 turn이 끝나면 보낸다.
 
 | 명령 | 동작 |
 |---|---|
-| `/interrupt` 또는 Ctrl+C | 현재 turn 중단. 대기 중인 메시지는 다음 turn으로 실행 |
-| `/steer 추가 지시` | Codex의 현재 turn에 지시 추가. Claude는 일반 입력으로 다음 turn에 대기 |
-| `/allow 요청ID`, `/deny 요청ID` | 화면에 표시된 작업을 한 번 허용하거나 거절 |
-| `/answer 요청ID {"질문ID":"답변"}` | 질문에 답변. 선택지가 있으면 표시된 값을 사용 |
-| `/history` | 입력별 queued/sent/accepted/completed/unknown/rejected 상태 |
-| `/sessions` | 현재 연결을 닫고 대화 선택 화면으로 이동. 줄 입력 화면에서는 목록과 재개 방법 표시 |
-| `/ack-unknown` | 불확실한 이전 전달을 확인했음을 표시. 입력을 재전송하지 않음 |
-| `/quit` | 앱 프로세스 종료, 대화 이력 보존 |
+| `::interrupt` 또는 Ctrl+C | 현재 turn 중단. 대기 중인 메시지는 다음 turn으로 실행 |
+| `::steer 추가 지시` | Codex의 현재 turn에 지시 추가. Claude는 일반 입력으로 다음 turn에 대기 |
+| `::allow 요청ID`, `::deny 요청ID` | 화면에 표시된 작업을 한 번 허용하거나 거절 |
+| `::answer 요청ID {"질문ID":"답변"}` | 질문에 답변. 선택지가 있으면 표시된 값을 사용 |
+| `::history` | 입력별 queued/sent/accepted/completed/unknown/rejected 상태 |
+| `::sessions` | 현재 연결을 닫고 대화 선택 화면으로 이동. 줄 입력 화면에서는 목록과 재개 방법 표시 |
+| `::ack-unknown` | 불확실한 이전 전달을 확인했음을 표시. 입력을 재전송하지 않음 |
+| `::quit` | 앱 프로세스 종료, 대화 이력 보존 |
+
+버전 0.5부터 실행기 명령은 `::`를 사용한다. `/model`, `/permissions`, `/status`는 native CLI용으로 구분한다. 현재 SDK/App Server 대화 화면은 native slash 명령을 실행하지 못하므로 설명을 표시하고, 모델에게 일반 문장으로 보내지 않는다. 원래 CLI 화면을 내장하는 작업은 별도다.
 
 승인·질문은 기본 3분 뒤 만료한다. 승인은 응답이 없으면 거절한다. 승인에는 도구 이름과 제안한 입력을 표시하며, 허용은 한 번만 적용한다. 이미 실행기 설정에서 허용한 도구는 추가 승인 없이 실행될 수 있다.
 
 - Codex: commandExecution/fileChange 승인을 지원하고 전달받은 파일 목록·diff를 표시한다. 별도의 `item/permissions/requestApproval`, MCP elicitation, dynamic tool call 등은 거절한다.
-- Claude: `canUseTool`로 들어오는 도구 승인과 `AskUserQuestion`을 처리한다. 질문 화면의 `q1`, `q2`를 `/answer` JSON 키로 사용한다. 비밀값·복수 선택 질문은 해당 요청만 거절한다. `permissionMode: default`를 사용하고 영구 허용 규칙을 추가하지 않는다.
+- Claude: `canUseTool`로 들어오는 도구 승인과 `AskUserQuestion`을 처리한다. 질문 화면의 `q1`, `q2`를 `::answer` JSON 키로 사용한다. 비밀값·복수 선택 질문은 해당 요청만 거절한다. `permissionMode: default`를 사용하고 영구 허용 규칙을 추가하지 않는다.
 
 ```powershell
 npm start -- --project "C:\작업\내프로젝트" --sessions
 npm start -- --project "C:\작업\내프로젝트" --resume "화면에 표시된-session-id"
 ```
 
-재개는 저장된 실행기·모델·지침 스냅샷을 사용한다. `--engine` 없이도 저장된 실행기를 고르며, `--resume`과 다른 실행기/모델을 함께 지정하면 거절한다. 새 설정은 새 세션에 적용된다. 연결이 끊기면 자동으로 다시 보내지 않는다. Codex는 native turn ID로 완료를 확인한다. Claude는 native user UUID로 입력 기록을 확인하지만, SDK 기록 조회가 바깥 turn의 result를 제공하지 않으므로 로컬 완료 증거를 잃은 입력은 `unknown`을 유지한다. 모델의 `end_turn` 뒤에도 [Stop hook이 작업을 이어갈 수 있다](https://code.claude.com/docs/en/hooks#stop). Codex의 원래 turn이 실행 중이면 재접속을 거절한다. 재개할 때 전송 전 대기 입력은 취소하며 `/history`로 확인할 수 있다.
+재개는 저장된 실행기·모델·지침 스냅샷을 사용한다. `--engine` 없이도 저장된 실행기를 고르며, `--resume`과 다른 실행기/모델을 함께 지정하면 거절한다. 새 설정은 새 세션에 적용된다. 연결이 끊기면 자동으로 다시 보내지 않는다. Codex는 native turn ID로 완료를 확인한다. Claude는 native user UUID로 입력 기록을 확인하지만, SDK 기록 조회가 바깥 turn의 result를 제공하지 않으므로 로컬 완료 증거를 잃은 입력은 `unknown`을 유지한다. 모델의 `end_turn` 뒤에도 [Stop hook이 작업을 이어갈 수 있다](https://code.claude.com/docs/en/hooks#stop). Codex의 원래 turn이 실행 중이면 재접속을 거절한다. 재개할 때 전송 전 대기 입력은 취소하며 `::history`로 확인할 수 있다.
 
-완료를 확인할 수 없는 입력의 `/ack-unknown` 확인은 재접속할 때마다 다시 요구한다. Ctrl+C는 연결 실패 상태에서는 앱을 종료한다. 강제 종료·전원 중단 때 자식 프로세스 종료는 보장하지 않으며, `/quit`으로 닫을 때는 소유한 프로세스의 종료를 확인한다.
+완료를 확인할 수 없는 입력의 `::ack-unknown` 확인은 재접속할 때마다 다시 요구한다. Ctrl+C는 연결 실패 상태에서는 앱을 종료한다. 강제 종료·전원 중단 때 자식 프로세스 종료는 보장하지 않으며, `::quit`으로 닫을 때는 소유한 프로세스의 종료를 확인한다.
 
 ## 설정과 저장
 

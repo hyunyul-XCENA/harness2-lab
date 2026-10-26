@@ -85,11 +85,11 @@ export class TuiApp {
     this.tick = setInterval(() => {if (this.model.pending.size) this.screen.invalidate();}, 1000);
   }
   note(text: string): void {this.model.note(text); this.scroll = 0; this.screen.invalidate();}
-  ready(): void {this.model.state = this.manager.state; this.note('Ready. /help for commands. /sessions opens the conversation picker.');}
+  ready(): void {this.model.state = this.manager.state; this.note('Ready. ::help for runner commands. ::sessions opens the conversation picker.');}
   private async interruptOrQuit(): Promise<void> {
     if (this.manager.activeTurn && this.manager.state !== 'failed') {
       try {await this.manager.interrupt();} catch (error) {this.note(errorText(error));}
-    } else if (this.manager.state === 'running') this.note('Native turn has not started yet. Retry Ctrl+C, or /quit to close.');
+    } else if (this.manager.state === 'running') this.note('Native turn has not started yet. Retry Ctrl+C, or ::quit to close.');
     else await this.finish('quit');
   }
   private enqueue(work: () => Promise<void>): void {
@@ -176,11 +176,11 @@ export class TuiApp {
       const lines = this.model.messages.flatMap(value => wrap(`[${value.role}] ${value.text}`, columns).concat(''));
       this.scroll = Math.min(this.scroll, Math.max(0, lines.length - bodyHeight));
       const end = Math.max(0, lines.length - this.scroll); body = lines.slice(Math.max(0, end - bodyHeight), end);
-      footer = this.model.pending.size ? `${this.model.pending.size} pending request(s) — F2 review; /allow /deny /answer also work` : `queued ${counts.queued ?? 0} | unknown ${counts.unknown ?? 0} | tokens ${this.model.usage.inputTokens ?? '?'} in / ${this.model.usage.outputTokens ?? '?'} out (native totals)${this.scroll ? ' | SCROLLED' : ''}`;
+      footer = this.model.pending.size ? `${this.model.pending.size} pending request(s) — F2 review; ::allow ::deny ::answer also work` : `queued ${counts.queued ?? 0} | unknown ${counts.unknown ?? 0} | tokens ${this.model.usage.inputTokens ?? '?'} in / ${this.model.usage.outputTokens ?? '?'} out (native totals)${this.scroll ? ' | SCROLLED' : ''}`;
     }
     while (body.length < bodyHeight) body.push('');
     const view = editor.view(Math.max(1, columns - 2));
-    const hint = this.closing ? 'Closing native connection…' : this.busy ? 'Sending answer…' : 'Enter send | F2 request | PgUp/PgDn scroll | Ctrl+C interrupt/quit | /help';
+    const hint = this.closing ? 'Closing native connection…' : this.busy ? 'Sending answer…' : 'Enter send | F2 request | PgUp/PgDn scroll | Ctrl+C interrupt/quit | ::help';
     return {lines: [...header, '─'.repeat(columns), ...body, footer, `> ${view.text}`, hint, ''], ...(!this.closing && (!this.review || this.review.typing) ? {cursor: {row: rows - 2, column: view.cursor + 3}} : {})};
   }
   finish(action: 'quit' | 'select'): Promise<void> {

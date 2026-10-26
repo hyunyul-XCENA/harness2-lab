@@ -47,6 +47,7 @@ test('original engine routing is separate from chat configuration and refuses un
   const cli = spawnSync(process.execPath, [path.join(root, 'dist/src/cli.js'), '--harness2', 'verify'], {cwd: root, encoding: 'utf8', windowsHide: true});
   assert.equal(cli.status, 0, cli.stderr); assert.match(cli.stdout, /Verified pinned Harness/);
   const help = invoke(['run', '--help']); assert.equal(help.status, 0, help.stderr); assert.match(help.stdout, /--bench/);
+  const project = invoke(['project', '--help']); assert.equal(project.status, 0, project.stderr); assert.match(project.stdout, /init/); assert.match(project.stdout, /judge/);
   if (process.platform === 'win32') {
     const native = invoke(['run', '--bench', 'jb']); assert.equal(native.status, 1); assert.match(native.stderr, /require Linux/);
   }

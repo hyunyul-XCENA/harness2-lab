@@ -165,7 +165,7 @@ export class ClaudeAdapter implements AgentAdapter {
   async submit(session: LiveSession, input: InputMessage): Promise<SubmissionReceipt> {
     this.check(session);
     if (this.closing || this.disconnected) throw new Error('Claude connection is closed');
-    if (input.mode !== 'next-turn') throw new Error('Claude supports queued follow-ups; /steer is not supported');
+    if (input.mode !== 'next-turn') throw new Error('Claude supports queued follow-ups; ::steer is not supported');
     if (this.active) throw new Error('Claude turn is already active');
     if (!input.text.trim() || this.submissions.has(input.requestId)) throw new Error('Empty input or duplicate request ID');
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(input.requestId)) throw new Error('Claude input request ID must be a UUID');

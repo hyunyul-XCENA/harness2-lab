@@ -66,6 +66,8 @@ flowchart TD
 
 현재 구현은 원본 코어와 benchmark 명령에 도달하는 실행 호스트, Windows 호환 패치, 모델 없는 원본 전체 흐름 검증이다. `k=1/2`, 두 모드, `4k/3k` 예산, finals-only 선택, 앞선 과제만 전달, 미완료 경험 제외, 잘못된 수정 재시도와 기존 결과 재개를 검사한다.
 
-실제 사용자 프로젝트의 요청을 원본 `BenchmarkAdapter`/`Substrate` 계약으로 연결하는 작업과, 원래 CLI의 모든 기능을 보존하는 내장 대화 화면은 아직 구현하지 않았다. 다음 단계는 이 원본 과제 실행 경로에 프로젝트 adapter를 추가하는 것이다. 기존 대화 프로토타입을 원본 Harness²가 완성된 것처럼 표시하지 않는다.
+실제 사용자 프로젝트는 [로컬 프로젝트 adapter](local-project.md)로 연결했다. 원본 코어는 그대로 두고 Git 소스 스냅샷, native Codex 모델 전송, 독립 작업 사본, 코드 산출물과 선택 후 외부 검사만 추가했다. 로컬 adapter는 hooks/subagents를 제외하는 등 공개 benchmark와 다른 실행 경계를 명시한다.
+
+원래 CLI의 모든 기능을 보존하는 내장 대화 화면은 아직 구현하지 않았다. 실행기 자체 명령은 `::`, native CLI 명령은 `/`로 구분하며 현재 SDK/App Server 화면은 native slash 명령을 실행하지 않는다. 기존 대화 프로토타입을 원본 Harness²가 완성된 것처럼 표시하지 않는다.
 
 참조: [원본 README](https://github.com/google-research/harness2), [원본 실험 설명](https://github.com/google-research/harness2/blob/main/docs/EXPERIMENTS.md), [원본 BenchmarkAdapter](https://github.com/google-research/harness2/blob/main/harness2/core/spec.py).

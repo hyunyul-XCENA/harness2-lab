@@ -100,12 +100,12 @@ def demo(arguments: list[str]) -> int:
 def main(arguments: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if arguments is None else arguments)
     if not args or args == ["--help"] or args == ["-h"]:
-        print("Original Harness² host\nCommands: demo, verify, test, run, judge, report, setup, check\nExample: npm run harness2 -- demo --k 1 --mode both\nrun/judge/report/setup/check delegate to upstream and require its Linux environment.\nThe existing chat UI is a separate prototype, not the Harness² algorithm.")
+        print("Original Harness² host\nCommands: demo, project, verify, test, run, judge, report, setup, check\nExample: npm run harness2 -- demo --k 1 --mode both\nproject adds a local native Codex adapter; project --help lists prepare/run/judge commands.\nrun/judge/report/setup/check delegate to upstream and require its Linux environment.\nThe existing chat UI is a separate prototype, not the Harness² algorithm.")
         return 0
     if not ((3, 12) <= sys.version_info[:2] < (3, 14)):
         raise RuntimeError("Upstream requires Python 3.12 or 3.13; set HARNESS2_PYTHON to that executable")
     action, rest = args[0], args[1:]
-    if action not in {"demo", "verify", "test", *MODULES}:
+    if action not in {"demo", "project", "verify", "test", *MODULES}:
         raise ValueError(f"Unknown command: {action}")
     verify_vendor()
     sys.path.insert(0, str(VENDOR))
@@ -117,6 +117,9 @@ def main(arguments: list[str] | None = None) -> int:
         return 0
     if action == "demo":
         return demo(rest)
+    if action == "project":
+        from project_cli import main as project_main
+        return project_main(rest, PIN)
     if action == "test":
         if rest:
             raise ValueError("test takes no arguments")
@@ -126,6 +129,11 @@ def main(arguments: list[str] | None = None) -> int:
         tests = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(tests)
         suite.addTests(unittest.TestLoader().loadTestsFromModule(tests))
+        project_spec = importlib.util.spec_from_file_location("runner_project_tests", ROOT / "python" / "test_project.py")
+        assert project_spec and project_spec.loader
+        project_tests = importlib.util.module_from_spec(project_spec)
+        project_spec.loader.exec_module(project_tests)
+        suite.addTests(unittest.TestLoader().loadTestsFromModule(project_tests))
         return int(not unittest.TextTestRunner(verbosity=2).run(suite).wasSuccessful())
     # Full benchmark runners use Linux shells/process groups and the pinned
     # benchmark dependencies. Never silently route them to our chat adapters.
