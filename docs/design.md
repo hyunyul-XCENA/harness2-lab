@@ -6,7 +6,7 @@
 
 | 항목 | 결정 |
 |---|---|
-| 언어와 화면 | TypeScript, Node.js 24 LTS 계열, Ink 기반 TUI. 패키지와 Node 지원 범위는 구현 시 lockfile로 고정 |
+| 언어와 화면 | TypeScript, Node.js 24 LTS 계열, Node ANSI TUI. 화면/입력 수명은 앱에서 관리하고 글자 폭 계산은 string-width 8.3.0으로 고정 |
 | 우선 플랫폼 | Windows 네이티브를 우선 확인하고 Linux도 같은 수용 기준으로 확인. Windows 프로세스 종료·경로 처리에는 별도 구현 필요 |
 | Codex 연결 | 로컬 `codex app-server` 자식 프로세스와 stdio JSON-RPC. 외부 리스너 없이 시작 |
 | Claude 연결 | TypeScript Agent SDK의 열린 async input stream. 답변이 끝나도 입력 스트림을 닫지 않음 |
@@ -199,7 +199,7 @@ Harness²의 Propose–Probe–Compose와 근거 저장을 참고하되 우리 �
 | C1 | 수동 격리 실험 | 같은 스냅샷·독립 세션·읽기 전용 검증. 실패·timeout·기준/후보 반복 결과 보존 |
 | C2 | 비교·채택 화면 | 근거와 diff 검토 후 adopt/keep/defer. 현재 대화 유지, 새 대화만 새 버전 사용 |
 
-지금 다음으로 구현할 범위는 **A0와 A1**이다. 실험 자동화나 후보 생성부터 만들지 않는다. Windows에서는 자식 프로세스 트리 종료, 한글 경로, UTF-8 청크 분할과 TUI resize를 실제 확인 항목에 포함한다.
+현재 A0–A3를 구현했다. 다음 범위는 **B1의 설정·지침 변경 감지와 적용 내용 확인** 및 B2 skills/scripts다. 실험 자동화는 C1의 격리를 갖춘 뒤 시작한다. Windows에서는 자식 프로세스 트리 종료, 한글 경로, UTF-8 청크 분할과 TUI resize를 확인 항목에 포함한다.
 
 ## 10. 아직 검증해야 할 점
 
@@ -208,4 +208,4 @@ Harness²의 Propose–Probe–Compose와 근거 저장을 참고하되 우리 �
 - Windows container 또는 Linux container 안에서 두 실행기와 인증을 재현하는 경로. 확인 전에는 실험 기능을 비활성으로 둔다.
 - 중단·프로세스 죽음·승인 대기 중 재개가 각 runtime에서 남기는 이력. 불확실한 입력의 자동 재전송 금지를 수용 검사로 고정한다.
 
-2026-10-23 구현 상태: A0/A1 및 A2 Claude adapter와 readline 터미널 UI를 구현했다. 검증 조합은 Codex CLI 0.163.0, Claude Code 2.1.309 + Agent SDK 0.3.309, Node.js 24.3.0이다. 두 실행기에서 실제 두 turn 문맥 유지·프로세스 종료 후 같은 대화 재개·중단을 확인했다. Claude는 열린 async 입력 스트림을 하나의 query()에 연결한다. Claude의 midTurnInput은 queue이며 현재-turn steer는 거절한다. 전체 화면 TUI와 개선 실험은 다음 단계다. 실행 방법과 최신 검증 범위는 README를 따른다.
+2026-10-26 구현 상태: A0–A3를 구현했다. 연결 조합은 Codex CLI 0.163.0, Claude Code 2.1.309 + Agent SDK 0.3.309, Node.js 24.x다. A2에서 두 실행기의 실제 두 turn 문맥 유지·같은 대화 재개·중단을 확인했다. A3는 실행기/세션 선택, 대화 복원, 승인/질문 카드, 스크롤과 한글 입력을 추가했다. Ink 계획은 Node ANSI 화면으로 바꿨다. 기존 headless core를 그대로 연결하고, 별도의 UI framework 없이 raw mode·alternate screen의 시작/종료를 직접 검사하기 위해서다. 화면은 33ms 간격으로 갱신하고 디스크 기록 순서는 유지한다. plain 모드는 같은 command handler를 사용한다. 자동 개선 실험은 아직 없다. 실행 방법과 최신 검증 범위는 README를 따른다.

@@ -14,6 +14,7 @@ export class SessionManager extends EventEmitter {
   private delivery?: Promise<void>;
   private pump?: Promise<void>;
   private closing = false;
+  private closeWork?: Promise<void>;
   private uncertain = false;
   private receipts = new Map<string, SubmissionReceipt>();
   private capabilities?: Capabilities;
@@ -31,11 +32,13 @@ export class SessionManager extends EventEmitter {
     if (old?.status === 'unknown' && ['queued', 'sent', 'accepted'].includes(receipt.status)) return;
     if (old?.status === receipt.status && old.nativeTurnId === receipt.nativeTurnId) return;
     this.receipts.set(receipt.requestId, receipt); this.store.append(this.live!.appSessionId, 'receipt', receipt);
+    this.emit('receipt', receipt);
     if (receipt.status === 'unknown') this.uncertain = true;
     if (receipt.status === 'completed' && ![...this.receipts.values()].some(value => value.status === 'unknown')) this.uncertain = false;
   }
   async start(spec: SessionSpec): Promise<void> {
     this.live = await this.adapter.start(spec);
+    if (this.closing) {await this.adapter.close(this.live); throw new Error('Session closed during startup');}
     this.store.append(spec.appSessionId, 'checkpoint', await this.adapter.checkpoint(this.live));
     this.transition('idle'); this.listen();
   }
@@ -46,6 +49,7 @@ export class SessionManager extends EventEmitter {
     const previous = this.store.inputs(sessionId);
     const unknown = previous.filter(input => ['sent', 'accepted', 'unknown'].includes(input.status));
     this.live = await this.adapter.resume(checkpoint);
+    if (this.closing) {await this.adapter.close(this.live); throw new Error('Session closed during startup');}
     for (const receipt of await this.adapter.reconcile(this.live, unknown.map(input => ({requestId: input.requestId, status: 'unknown', nativeTurnId: input.nativeTurnId})))) this.saveReceipt(receipt);
     // Queued inputs were never sent; show them in history, do not run on resume.
     for (const input of previous.filter(input => input.status === 'queued')) this.saveReceipt({requestId: input.requestId, status: 'rejected', evidence: 'Unsent input cancelled on resume'});
@@ -85,6 +89,7 @@ export class SessionManager extends EventEmitter {
     if (!steer && this.queued) throw new Error('The one-message queue is full');
     const input: InputMessage = {requestId: id(), text, mode: steer ? 'steer-current-turn' : 'next-turn', ...(steer ? {expectedNativeTurnId: this.activeTurn} : {})};
     this.store.append(this.live.appSessionId, 'input', input);
+    this.emit('input', input);
     if (!steer && (this.activeTurn || this.delivering || this.state !== 'idle')) {this.queued = input; return input.requestId;}
     await this.deliver(input); return input.requestId;
   }
@@ -129,9 +134,11 @@ export class SessionManager extends EventEmitter {
     this.store.append(this.live.appSessionId, 'answer', {requestId, answer, delivery: 'sent'});
   }
   history() {return this.live ? this.store.inputs(this.live.appSessionId) : [];}
-  async close(): Promise<void> {
-    if (this.closing) return; this.closing = true;
-    if (this.queued) {this.saveReceipt({requestId: this.queued.requestId, status: 'rejected', evidence: 'Unsent queued input cancelled on close'}); this.queued = undefined;}
-    if (this.live) {await this.adapter.close(this.live); await this.delivery?.catch(() => {}); await this.pump; this.transition('closed');}
+  close(): Promise<void> {
+    return this.closeWork ??= (async () => {
+      this.closing = true;
+      if (this.queued) {this.saveReceipt({requestId: this.queued.requestId, status: 'rejected', evidence: 'Unsent queued input cancelled on close'}); this.queued = undefined;}
+      if (this.live) {await this.adapter.close(this.live); await this.delivery?.catch(() => {}); await this.pump; this.transition('closed');}
+    })();
   }
 }

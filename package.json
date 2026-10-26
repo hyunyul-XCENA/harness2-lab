@@ -1,11 +1,12 @@
 {
   "name": "terminal-runner",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node dist/src/cli.js",
+    "preview:tui": "npm run build && node dist/scripts/preview-tui.js",
     "test": "npm run build && node --test dist/test/*.test.js",
     "smoke:codex": "npm run build && node dist/scripts/smoke-codex.js",
     "smoke:claude": "npm run build && node dist/scripts/smoke-claude.js",
@@ -21,6 +22,7 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "0.3.309",
-    "ajv": "8.20.0"
+    "ajv": "8.20.0",
+    "string-width": "8.3.0"
   }
 }

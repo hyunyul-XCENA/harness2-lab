@@ -4,7 +4,8 @@ import {DatabaseSync} from 'node:sqlite';
 import type {AgentEvent, InputMessage, SessionCheckpoint, SessionState, SubmissionReceipt} from '../contracts/agent.js';
 import {assertNoSymlink, id} from './util.js';
 
-type Entry = {sessionId: string; sequence: number; time: string; kind: 'checkpoint' | 'input' | 'receipt' | 'event' | 'answer'; data: unknown};
+export type JournalEntry = {sessionId: string; sequence: number; time: string; kind: 'checkpoint' | 'input' | 'receipt' | 'event' | 'answer'; data: unknown};
+type Entry = JournalEntry;
 export interface SavedInput extends InputMessage {status: SubmissionReceipt['status']; nativeTurnId?: string}
 
 export class StateStore {
@@ -126,6 +127,14 @@ export class StateStore {
   inputs(sessionId: string): SavedInput[] {
     const rows = this.db.prepare('SELECT input,status,native_turn_id FROM inputs WHERE session_id=? ORDER BY rowid').all(sessionId) as {input: string; status: SavedInput['status']; native_turn_id: string | null}[];
     return rows.map(row => ({...JSON.parse(row.input) as InputMessage, status: row.status, ...(row.native_turn_id ? {nativeTurnId: row.native_turn_id} : {})}));
+  }
+  /** Replay the durable, redacted app transcript after lease recovery. */
+  *entries(sessionId: string): Iterable<JournalEntry> {
+    this.safeId(sessionId);
+    const journal = path.join(this.directory, 'sessions', sessionId, 'events.jsonl');
+    assertNoSymlink(journal);
+    if (!fs.existsSync(journal)) return;
+    for (const line of fs.readFileSync(journal, 'utf8').split('\n')) if (line) yield JSON.parse(line) as JournalEntry;
   }
   list(): {id: string; state: SessionState; updated: string}[] {
     return this.db.prepare('SELECT id,state,updated FROM sessions WHERE checkpoint IS NOT NULL ORDER BY updated DESC').all() as unknown as {id: string; state: SessionState; updated: string}[];
