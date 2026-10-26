@@ -6,6 +6,8 @@
 
 현재 지원하는 로컬 조합은 Python 3.12/3.13, Node 24, **native Codex CLI 0.164.0**이다. 기존 Codex 로그인을 사용한다. 모델은 계정에서 사용할 수 있는 ID를 직접 지정한다. 공개 benchmark의 Codex pin 0.144.6과 기존 chat adapter의 pin 0.163.0은 별도다.
 
+Windows에서는 사용자 config를 제외해도 sandbox backend가 정해지도록 MXC를 명시한다. `check`와 `run`은 관리형 요구사항과 workspace 프로필을 유지한 채 모델 없는 sandbox 시작 검사를 먼저 수행한다. 이 검사가 실패하면 모델 호출 전에 중단하며, 더 넓은 권한이나 다른 backend로 자동 전환하지 않는다. 검사는 backend 시작 여부를 확인하며 모든 도구 명령의 허용을 보장하지는 않는다. 전역 Windows·Codex 설정은 바꾸지 않는다.
+
 PowerShell에서 준비한다. 첫 명령은 모델을 호출하지 않는다. `node_modules`와 원본 엔진은 작업 소스와 분리해 의존성 사본으로 보관한다.
 
 ```powershell

@@ -144,8 +144,23 @@ class ProjectTests(unittest.TestCase):
             self.assertIn("--ephemeral", argv)
             self.assertEqual(argv[argv.index("--sandbox") + 1], "workspace-write")
             self.assertNotIn("--dangerously-bypass-approvals-and-sandbox", argv)
+            if os.name == "nt":
+                self.assertIn('windows.sandbox="mxc"', argv)
+            else:
+                self.assertNotIn('windows.sandbox="mxc"', argv)
             self.assertFalse(argv[argv.index("-C") + 1].startswith("\\\\?\\"))
             self.assertFalse(argv[argv.index("--output-last-message") + 1].startswith("\\\\?\\"))
+
+    @unittest.skipUnless(os.name == "nt", "Windows sandbox startup check")
+    def test_windows_preflight_rejects_before_any_model_session(self):
+        with tempfile.TemporaryDirectory() as directory:
+            _, root, state, runtime = self.prepare(directory, n=1)
+            self.assertEqual(runtime.preflight()["model_calls"], 0)
+            with patch.dict(os.environ, {"HARNESS2_FIXTURE_PREFLIGHT_FAILURE": "1"}):
+                with self.assertRaisesRegex(RuntimeError, "before model calls"):
+                    run(root, state, runtime)
+            self.assertFalse((root / "executions").exists())
+            self.assertFalse((root / "audit").exists())
 
     def test_native_node_entry_script_runs_in_measurement_workspace(self):
         node = shutil.which("node")

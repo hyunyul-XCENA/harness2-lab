@@ -9,6 +9,12 @@ import time
 if sys.argv[1:] == ["--version"]:
     print("codex-cli 0.164.0")
     raise SystemExit(0)
+if "sandbox" in sys.argv[1:]:
+    if os.environ.get("HARNESS2_FIXTURE_PREFLIGHT_FAILURE"):
+        print("fixture sandbox unavailable", file=sys.stderr)
+        raise SystemExit(1)
+    print("HARNESS2_SANDBOX_PREFLIGHT")
+    raise SystemExit(0)
 cwd = Path(sys.argv[sys.argv.index("-C") + 1])
 answer = Path(sys.argv[sys.argv.index("--output-last-message") + 1])
 model = sys.argv[sys.argv.index("--model") + 1]

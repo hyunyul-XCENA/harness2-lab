@@ -30,6 +30,7 @@ def summaries(root, state):
 def run(root: Path, state: dict, runtime: CodexCLI):
     if runtime.version() != state["runtime"]["version"]:
         raise ValueError("Codex version changed; prepare a new experiment with the supported version")
+    write_json(root / "preflight.json", runtime.preflight())
     adapter = ProjectAdapter(root, state, runtime)
     proposer = CodexProposer(runtime, root / "audit")
     print(f"Original PPC | native Codex local adapter | model={runtime.model} | k={state['k']} | {state['mode']}", flush=True)
@@ -186,6 +187,7 @@ def main(arguments, pin):
                 else:
                     if runtime.version() != state["runtime"]["version"]:
                         raise ValueError("Codex version differs from the frozen experiment")
+                    write_json(root / "preflight.json", runtime.preflight())
                     count, k, modes = len(state["tasks"]), state["k"], modes_of(state)
                     rolls = (4 * k if len(modes) == 1 else 7 * k) * count
                     editors = (3 * k + 1 + int(k > 1)) * len(modes) * count

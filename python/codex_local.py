@@ -44,6 +44,25 @@ class CodexCLI:
     def version(self) -> str:
         return subprocess.run([*self.argv, "--version"], capture_output=True, text=True, encoding="utf-8", check=True, timeout=15).stdout.strip()
 
+    def platform_options(self) -> list[str]:
+        # --ignore-user-config also excludes [windows]. Select an enforcing
+        # backend explicitly, retaining workspace-write/never and managed policy.
+        return ["-c", 'windows.sandbox="mxc"'] if os.name == "nt" else []
+
+    def preflight(self) -> dict:
+        if os.name != "nt":
+            return {"windows_sandbox": None, "checked": False}
+        with tempfile.TemporaryDirectory(prefix="h2preflight-", dir=unlinked(Path(tempfile.gettempdir()))) as directory:
+            shell = str(Path(os.environ.get("SystemRoot", "C:/Windows")) / "System32/cmd.exe")
+            command = [*self.argv, *self.platform_options(), "sandbox", "--include-managed-config", "--permission-profile", ":workspace", "-C", native_cwd(Path(directory)), "--", shell, "/d", "/c", "echo", "HARNESS2_SANDBOX_PREFLIGHT"]
+            try:
+                result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30)
+            except (OSError, subprocess.TimeoutExpired) as exc:
+                raise RuntimeError(f"Windows MXC sandbox preflight failed before model calls: {exc}") from exc
+            if result.returncode or "HARNESS2_SANDBOX_PREFLIGHT" not in result.stdout:
+                raise RuntimeError(f"Windows MXC sandbox preflight failed before model calls: {result.stderr.strip()[-600:] or result.stdout.strip()[-600:]}")
+        return {"windows_sandbox": "mxc", "checked": True, "managed_requirements": True, "permission_profile": ":workspace", "model_calls": 0}
+
     def invoke(self, cwd: Path, mission: str, output: Path, timeout: int | None = None) -> dict:
         output.mkdir(parents=True, exist_ok=True)
         # Native CLI authentication is inherited. Global config/rules are excluded
@@ -56,7 +75,7 @@ class CodexCLI:
         # response at a short ordinary path, then persist it using Python paths.
         with tempfile.TemporaryDirectory(prefix="h2native-", dir=unlinked(Path(tempfile.gettempdir()))) as directory:
             response = Path(directory) / "answer.txt"
-            command = [*self.argv, "exec", "--model", self.model, "-c", f'model_reasoning_effort={json.dumps(self.effort)}', "-c", 'approval_policy="never"', "-c", 'features.multi_agent=false', "--ignore-user-config", "--ignore-rules", "--sandbox", "workspace-write", "--skip-git-repo-check", "--ephemeral", "--json", "--color", "never", "-C", launch_cwd, "--output-last-message", plain_path(response), "-"]
+            command = [*self.argv, *self.platform_options(), "exec", "--model", self.model, "-c", f'model_reasoning_effort={json.dumps(self.effort)}', "-c", 'approval_policy="never"', "-c", 'features.multi_agent=false', "--ignore-user-config", "--ignore-rules", "--sandbox", "workspace-write", "--skip-git-repo-check", "--ephemeral", "--json", "--color", "never", "-C", launch_cwd, "--output-last-message", plain_path(response), "-"]
             with (output / "events.jsonl").open("wb") as stdout, (output / "stderr.txt").open("wb") as stderr:
                 process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=stdout, stderr=stderr, cwd=launch_cwd, env=env, creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0, start_new_session=os.name != "nt")
                 try:
@@ -78,7 +97,7 @@ class CodexCLI:
         text = native_text if native_text is not None else final_message(output / "events.jsonl")
         answer.write_text(text, encoding="utf-8")
         success = process.returncode == 0 and not timed_out and any(e.get("type") == "turn.completed" for e in events) and not any(e.get("type") in {"turn.failed", "error"} for e in events) and bool(text.strip())
-        result = {"ok": success, "exit_code": process.returncode, "timed_out": timed_out, "wall_s": round(time.monotonic() - started, 3), "usage": next((e.get("usage", {}) for e in reversed(events) if e.get("type") == "turn.completed"), {}), "cost_usd": None}
+        result = {"ok": success, "exit_code": process.returncode, "timed_out": timed_out, "wall_s": round(time.monotonic() - started, 3), "usage": next((e.get("usage", {}) for e in reversed(events) if e.get("type") == "turn.completed"), {}), "cost_usd": None, "windows_sandbox": "mxc" if os.name == "nt" else None}
         write_json(output / "native.json", result)
         return result | {"text": text}
 
