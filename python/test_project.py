@@ -162,6 +162,17 @@ class ProjectTests(unittest.TestCase):
             self.assertFalse((root / "executions").exists())
             self.assertFalse((root / "audit").exists())
 
+    @unittest.skipUnless(os.name == "nt", "Windows sandbox startup timeout")
+    def test_windows_preflight_timeout_kills_descendants(self):
+        with tempfile.TemporaryDirectory() as directory:
+            _, root, _, runtime = self.prepare(directory, n=1)
+            marker = root / "preflight-escaped.txt"
+            with patch.dict(os.environ, {"HARNESS2_FIXTURE_PREFLIGHT_TIMEOUT_MARKER": str(marker)}), patch("codex_local.PREFLIGHT_TIMEOUT", 0.5):
+                with self.assertRaisesRegex(RuntimeError, "startup timed out"):
+                    runtime.preflight()
+            time.sleep(1.6)
+            self.assertFalse(marker.exists(), "preflight descendant survived the timeout")
+
     def test_native_node_entry_script_runs_in_measurement_workspace(self):
         node = shutil.which("node")
         self.assertIsNotNone(node, "Node 24 is a host prerequisite")

@@ -17,6 +17,7 @@ from harness2.substrate.codex import final_message
 from project_store import files, native_cwd, plain_path, unlinked, write_json
 
 SUPPORTED_VERSION = "codex-cli 0.164.0"
+PREFLIGHT_TIMEOUT = 30
 
 def stop_tree(process):
     if os.name == "nt":
@@ -56,12 +57,18 @@ class CodexCLI:
             shell = str(Path(os.environ.get("SystemRoot", "C:/Windows")) / "System32/cmd.exe")
             command = [*self.argv, *self.platform_options(), "sandbox", "--include-managed-config", "--permission-profile", ":workspace", "-C", native_cwd(Path(directory)), "--", shell, "/d", "/c", "echo", "HARNESS2_SANDBOX_PREFLIGHT"]
             try:
-                result = subprocess.run(command, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30)
-            except (OSError, subprocess.TimeoutExpired) as exc:
+                process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, encoding="utf-8", errors="replace", creationflags=subprocess.CREATE_NEW_PROCESS_GROUP)
+            except OSError as exc:
                 raise RuntimeError(f"Windows MXC sandbox preflight failed before model calls: {exc}") from exc
-            if result.returncode or "HARNESS2_SANDBOX_PREFLIGHT" not in result.stdout:
-                raise RuntimeError(f"Windows MXC sandbox preflight failed before model calls: {result.stderr.strip()[-600:] or result.stdout.strip()[-600:]}")
-        return {"windows_sandbox": "mxc", "checked": True, "managed_requirements": True, "permission_profile": ":workspace", "model_calls": 0}
+            try:
+                stdout, stderr = process.communicate(timeout=PREFLIGHT_TIMEOUT)
+            except subprocess.TimeoutExpired as exc:
+                stop_tree(process)
+                process.communicate(timeout=15)
+                raise RuntimeError("Windows MXC sandbox preflight failed before model calls: startup timed out") from exc
+            if process.returncode or "HARNESS2_SANDBOX_PREFLIGHT" not in stdout:
+                raise RuntimeError(f"Windows MXC sandbox preflight failed before model calls: {stderr.strip()[-600:] or stdout.strip()[-600:]}")
+        return {"windows_sandbox": "mxc", "checked": True, "include_managed_config_flag": True, "user_config_included": True, "permission_profile": ":workspace", "model_calls": 0}
 
     def invoke(self, cwd: Path, mission: str, output: Path, timeout: int | None = None) -> dict:
         output.mkdir(parents=True, exist_ok=True)

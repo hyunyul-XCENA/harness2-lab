@@ -10,6 +10,9 @@ if sys.argv[1:] == ["--version"]:
     print("codex-cli 0.164.0")
     raise SystemExit(0)
 if "sandbox" in sys.argv[1:]:
+    if marker := os.environ.get("HARNESS2_FIXTURE_PREFLIGHT_TIMEOUT_MARKER"):
+        subprocess.Popen([sys.executable, "-c", "import time,pathlib,sys; time.sleep(1.5); pathlib.Path(sys.argv[1]).write_text('escaped')", marker])
+        time.sleep(20)
     if os.environ.get("HARNESS2_FIXTURE_PREFLIGHT_FAILURE"):
         print("fixture sandbox unavailable", file=sys.stderr)
         raise SystemExit(1)
